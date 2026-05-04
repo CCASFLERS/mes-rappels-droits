@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 
-const STORAGE_KEY = 'mes-rappels-droits-pwa-v1';
+const STORAGE_KEY = 'mes-rappels-droits-pwa-v2';
 
 const LANGUAGES = [
   { code: 'fr', label: 'Français' },
@@ -44,10 +44,23 @@ const UI = {
     welcome: 'Bienvenue 👋',
     chooseLanguage: 'Choisissez votre langue pour commencer. Vous pourrez la changer à tout moment.',
     continue: 'Continuer',
-    settingsIntro: 'Changer la langue et partager l’application.',
+    settingsIntro: 'Changer la langue, installer et partager l’application.',
     shareApp: 'Partager / QR code',
     scanToInstall: 'Scannez ce QR code pour ouvrir l’application sur un téléphone.',
     installHelp: 'Sur Android : menu ⋮ puis Installer ou Ajouter à l’écran d’accueil. Sur iPhone : Safari, Partager, puis Sur l’écran d’accueil.',
+    installApp: 'Installer l’application',
+    installTitle: 'Installer l’application sur le téléphone',
+    installIntro: 'Ajoutez l’application sur l’écran d’accueil pour l’ouvrir comme une vraie application.',
+    installReady: 'Installation disponible sur ce téléphone.',
+    installUnavailable: 'Installation automatique indisponible ici. Utilisez le menu du navigateur.',
+    installAndroidHelp: 'Sur Android / Chrome : appuyez sur “Installer l’application”. Si le bouton ne fonctionne pas, ouvrez le menu ⋮ puis “Installer l’application” ou “Ajouter à l’écran d’accueil”.',
+    installIosHelp: 'Sur iPhone : ouvrez cette page avec Safari, appuyez sur Partager, puis choisissez “Sur l’écran d’accueil”. Apple ne permet pas de lancer l’installation automatiquement.',
+    installed: 'Application installée',
+    installedText: 'L’application semble déjà installée ou ouverte depuis l’écran d’accueil.',
+    openFromHome: 'Ouvrez ensuite l’application depuis son icône sur l’écran d’accueil.',
+    activateNotifications: 'Activer les notifications',
+    notificationStepTitle: 'Activer les notifications',
+    notificationStepText: 'Les notifications ne peuvent pas être forcées. La personne doit accepter la demande du téléphone.',
     alertsIntro: 'Préparation des rappels automatiques et des notifications.',
     browserNotifications: 'Notifications navigateur',
     currentStatus: 'État actuel',
@@ -106,6 +119,7 @@ const CATALOG = [
 ];
 
 function labelsFor(language) { return UI[language] || UI.fr; }
+function labelText(labels, key) { return (labels && labels[key]) || UI.fr[key] || key; }
 function catalogFor(item) { return CATALOG.find((c) => c.id === item.catalogId) || CATALOG.find((c) => c.id === 'custom'); }
 function todayISO() { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), d.getDate()).toISOString().slice(0, 10); }
 function parseDate(s) { if (!s) return null; const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); }
@@ -125,6 +139,8 @@ function initialState() { return { language: 'fr', onboarded: false, tab: 'home'
 function loadState() { try { const saved = localStorage.getItem(STORAGE_KEY); if (saved) { const parsed = JSON.parse(saved); return { ...initialState(), ...parsed, items: Array.isArray(parsed.items) ? parsed.items.map(normalizeItem) : [] }; } } catch {} return initialState(); }
 function upcomingAlerts(items) { return items.flatMap((item) => reminderOffsets(item.rule).map((offset) => ({ ...item, reminderDate: addDays(item.nextDate, offset), offset }))).filter((r) => daysUntil(r.reminderDate) >= 0).sort((a, b) => parseDate(a.reminderDate) - parseDate(b.reminderDate)).slice(0, 12); }
 function notificationStatus() { if (typeof window === 'undefined' || !('Notification' in window)) return 'unsupported'; return window.Notification.permission; }
+function isStandaloneMode() { if (typeof window === 'undefined') return false; return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true; }
+function detectPlatform() { if (typeof navigator === 'undefined') return 'other'; const ua = navigator.userAgent || ''; if (/iphone|ipad|ipod/i.test(ua)) return 'ios'; if (/android/i.test(ua)) return 'android'; return 'other'; }
 
 function Button({ children, onClick, variant = 'default', className = '', type = 'button', disabled = false }) {
   const styles = { default: 'bg-slate-900 text-white hover:bg-slate-800', outline: 'border border-slate-300 bg-white text-slate-900 hover:bg-slate-50', ghost: 'bg-transparent text-slate-700 hover:bg-slate-100', destructive: 'bg-red-600 text-white hover:bg-red-700', success: 'bg-emerald-700 text-white hover:bg-emerald-800' };
@@ -156,11 +172,24 @@ function BottomNav({ labels, tab, setTab }) { const tabs = [['home', '🏠', lab
 
 function Onboarding({ state, setState, labels }) { return <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-slate-50 to-white p-4"><Card className="w-full max-w-xl rounded-3xl shadow-lg"><CardContent className="p-6 sm:p-8"><div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-900 text-3xl text-white">🌐</div><h1 className="text-3xl font-bold">{labels.welcome}</h1><p className="mt-2 text-slate-600">{labels.chooseLanguage}</p><div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">{LANGUAGES.map((lang) => <button key={lang.code} type="button" onClick={() => setState((s) => ({ ...s, language: lang.code }))} className={`rounded-2xl border p-4 text-left hover:bg-slate-50 ${state.language === lang.code ? 'ring-2 ring-slate-900' : ''}`}><div className="font-semibold">{lang.label}</div></button>)}</div><Button className="mt-6 w-full py-6 text-base" onClick={() => setState((s) => ({ ...s, onboarded: true }))}>{labels.continue}</Button></CardContent></Card></div>; }
 
-function Home({ state, labels, actions }) { const todo = state.items.filter(showAsTodo).sort((a, b) => parseDate(a.nextDate) - parseDate(b.nextDate)); const done = state.items.filter((i) => !showAsTodo(i)).sort((a, b) => parseDate(b.lastAction) - parseDate(a.lastAction)); return <div className="space-y-6"><section className="rounded-3xl bg-slate-900 p-6 text-white shadow-sm sm:p-8"><h1 className="text-3xl font-bold">{labels.myProcedures}</h1><p className="mt-2 text-slate-300">{labels.homeIntro}</p></section><section><div className="mb-3 flex items-center justify-between"><h2 className="text-xl font-bold">{labels.todo}</h2><span className="rounded-full bg-slate-200 px-3 py-1 text-sm text-slate-700">{todo.length}</span></div><div className="space-y-3">{todo.length ? todo.map((item) => <ProcedureCard key={item.uid} item={item} labels={labels} actions={actions} />) : <EmptyState labels={labels} actions={actions} />}</div></section><section><div className="mb-3 flex items-center justify-between"><h2 className="text-xl font-bold">{labels.recentlyDone}</h2><span className="rounded-full bg-emerald-100 px-3 py-1 text-sm text-emerald-800">{done.length}</span></div><div className="space-y-3">{done.length ? done.map((item) => <ProcedureCard key={item.uid} item={item} labels={labels} actions={actions} />) : <p className="rounded-2xl bg-white p-4 text-sm text-slate-500">{labels.emptyDone}</p>}</div></section></div>; }
+function InstallPanel({ labels, deferredInstallPrompt, standalone, platform, onInstall, permission, askNotifications }) {
+  const canAutoInstall = Boolean(deferredInstallPrompt) && !standalone;
+  const installHelp = standalone
+    ? labelText(labels, 'openFromHome')
+    : platform === 'ios'
+      ? labelText(labels, 'installIosHelp')
+      : platform === 'android'
+        ? labelText(labels, 'installAndroidHelp')
+        : labelText(labels, 'installUnavailable');
+  const notificationAllowed = permission === 'granted';
+  return <Card><CardContent className="p-5"><h2 className="text-lg font-bold">📲 {labelText(labels, 'installTitle')}</h2><p className="mt-1 text-slate-600">{standalone ? labelText(labels, 'installedText') : labelText(labels, 'installIntro')}</p><div className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm text-slate-700">{installHelp}</div><div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">{canAutoInstall ? <Button className="py-4" onClick={onInstall}>📲 {labelText(labels, 'installApp')}</Button> : <Button className="py-4" disabled>{standalone ? labelText(labels, 'installed') : labelText(labels, 'installApp')}</Button>}<Button variant={notificationAllowed ? 'success' : 'outline'} className="py-4" onClick={askNotifications} disabled={permission !== 'default'}>🔔 {notificationAllowed ? labelText(labels, 'notificationsGrantedTitle') : labelText(labels, 'activateNotifications')}</Button></div><div className="mt-3 rounded-xl bg-white p-3 text-xs text-slate-500"><strong>{labelText(labels, 'notificationStepTitle')} :</strong> {labelText(labels, 'notificationStepText')}</div></CardContent></Card>;
+}
+
+function Home({ state, labels, actions, installProps }) { const todo = state.items.filter(showAsTodo).sort((a, b) => parseDate(a.nextDate) - parseDate(b.nextDate)); const done = state.items.filter((i) => !showAsTodo(i)).sort((a, b) => parseDate(b.lastAction) - parseDate(a.lastAction)); return <div className="space-y-6"><section className="rounded-3xl bg-slate-900 p-6 text-white shadow-sm sm:p-8"><h1 className="text-3xl font-bold">{labels.myProcedures}</h1><p className="mt-2 text-slate-300">{labels.homeIntro}</p></section>{installProps && !installProps.standalone && <InstallPanel labels={labels} {...installProps} />}<section><div className="mb-3 flex items-center justify-between"><h2 className="text-xl font-bold">{labels.todo}</h2><span className="rounded-full bg-slate-200 px-3 py-1 text-sm text-slate-700">{todo.length}</span></div><div className="space-y-3">{todo.length ? todo.map((item) => <ProcedureCard key={item.uid} item={item} labels={labels} actions={actions} />) : <EmptyState labels={labels} actions={actions} />}</div></section><section><div className="mb-3 flex items-center justify-between"><h2 className="text-xl font-bold">{labels.recentlyDone}</h2><span className="rounded-full bg-emerald-100 px-3 py-1 text-sm text-emerald-800">{done.length}</span></div><div className="space-y-3">{done.length ? done.map((item) => <ProcedureCard key={item.uid} item={item} labels={labels} actions={actions} />) : <p className="rounded-2xl bg-white p-4 text-sm text-slate-500">{labels.emptyDone}</p>}</div></section></div>; }
 
 function Alerts({ state, labels, actions }) { const [permission, setPermission] = useState(notificationStatus()); const reminders = upcomingAlerts(state.items); async function ask() { const current = notificationStatus(); if (current === 'unsupported' || current === 'denied') { setPermission(current); return; } try { setPermission(await window.Notification.requestPermission()); } catch { setPermission('unsupported'); } } const message = permission === 'denied' ? [labels.notificationsDeniedTitle, labels.notificationsDeniedText, 'bg-red-50 border-red-100 text-red-900'] : permission === 'granted' ? [labels.notificationsGrantedTitle, labels.notificationsGrantedText, 'bg-emerald-50 border-emerald-100 text-emerald-900'] : permission === 'unsupported' ? [labels.notificationsUnsupportedTitle, labels.notificationsUnsupportedText, 'bg-amber-50 border-amber-100 text-amber-900'] : [labels.browserNotifications, labels.notificationsDefaultText, 'bg-slate-50 border-slate-100 text-slate-700']; return <div className="space-y-6"><div><h1 className="text-3xl font-bold">{labels.alerts}</h1><p className="mt-1 text-slate-600">{labels.alertsIntro}</p></div><Card><CardContent className="p-5"><div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="text-lg font-bold">🔔 {labels.browserNotifications}</h2><p className="mt-1 text-slate-600">{labels.currentStatus} : <strong>{permission}</strong></p></div>{permission === 'default' && <Button variant="outline" onClick={ask}>{labels.allow}</Button>}</div><div className={`mt-4 rounded-2xl border p-4 text-sm ${message[2]}`}><div className="font-semibold">{message[0]}</div><div className="mt-1">{message[1]}</div></div></CardContent></Card><Card><CardContent className="p-5"><h2 className="text-lg font-bold">{labels.nextAlerts}</h2><div className="mt-4 space-y-3">{reminders.length ? reminders.map((r) => <button key={`${r.uid}-${r.offset}`} type="button" onClick={() => actions.edit(r)} className="flex w-full items-center justify-between gap-3 rounded-xl bg-slate-50 p-3 text-left hover:bg-slate-100"><div><div className="font-semibold">{r.icon} {r.title}</div><div className="text-sm text-slate-500">{r.offset < 0 ? Math.abs(r.offset) + ' jour(s) avant' : r.offset === 0 ? 'Le jour même' : r.offset + ' jour(s) après'}</div></div><div className="text-right text-sm font-semibold">{formatDate(r.reminderDate)}</div></button>) : <p className="text-slate-500">{labels.noAlerts}</p>}</div></CardContent></Card></div>; }
 
-function Settings({ state, labels, setState, appUrl }) { return <div className="space-y-6"><div><h1 className="text-3xl font-bold">{labels.settings}</h1><p className="mt-1 text-slate-600">{labels.settingsIntro}</p></div><Card><CardContent className="p-5"><h2 className="text-lg font-bold">🌐 {labels.language}</h2><div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-4">{LANGUAGES.map((lang) => <Button key={lang.code} variant={state.language === lang.code ? 'default' : 'outline'} className="justify-start" onClick={() => setState((s) => ({ ...s, language: lang.code, toast: { title: labelsFor(lang.code).saved, body: lang.label } }))}>{lang.label}</Button>)}</div></CardContent></Card><Card><CardContent className="p-5"><h2 className="text-lg font-bold">📱 {labels.shareApp}</h2><p className="mt-1 text-slate-600">{labels.scanToInstall}</p><div className="mt-4 inline-block rounded-2xl bg-white p-4 shadow-sm"><QRCodeSVG value={appUrl} size={220} includeMargin /></div><p className="mt-3 max-w-xl text-sm text-slate-600">{labels.installHelp}</p><p className="mt-2 break-all rounded-xl bg-slate-50 p-3 text-xs text-slate-600">{appUrl}</p></CardContent></Card></div>; }
+function Settings({ state, labels, setState, appUrl, installProps }) { return <div className="space-y-6"><div><h1 className="text-3xl font-bold">{labels.settings}</h1><p className="mt-1 text-slate-600">{labels.settingsIntro}</p></div><InstallPanel labels={labels} {...installProps} /><Card><CardContent className="p-5"><h2 className="text-lg font-bold">🌐 {labels.language}</h2><div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-4">{LANGUAGES.map((lang) => <Button key={lang.code} variant={state.language === lang.code ? 'default' : 'outline'} className="justify-start" onClick={() => setState((s) => ({ ...s, language: lang.code, toast: { title: labelsFor(lang.code).saved, body: lang.label } }))}>{lang.label}</Button>)}</div></CardContent></Card><Card><CardContent className="p-5"><h2 className="text-lg font-bold">📱 {labels.shareApp}</h2><p className="mt-1 text-slate-600">{labels.scanToInstall}</p><div className="mt-4 inline-block rounded-2xl bg-white p-4 shadow-sm"><QRCodeSVG value={appUrl} size={220} includeMargin /></div><p className="mt-3 max-w-xl text-sm text-slate-600">{labels.installHelp}</p><p className="mt-2 break-all rounded-xl bg-slate-50 p-3 text-xs text-slate-600">{appUrl}</p></CardContent></Card></div>; }
 
 function Guides({ labels, setTab }) { return <div className="space-y-6"><div><h1 className="text-3xl font-bold">{labels.guidesTitle}</h1><p className="mt-1 text-slate-600">{labels.guidesIntro}</p></div><Card><CardContent className="p-5"><div className="grid grid-cols-1 gap-3 md:grid-cols-2">{CATALOG.filter((c) => c.id !== 'custom').map((c) => <div key={c.id} className="rounded-2xl bg-slate-50 p-4"><div className="font-semibold">📘 {labels.guideStep} — {c.title}</div><div className="mt-1 text-sm text-slate-600">{labels.guideComing}</div></div>)}</div><Button className="mt-5" onClick={() => setTab('home')}>{labels.back}</Button></CardContent></Card></div>; }
 
@@ -171,14 +200,41 @@ export default function App() {
   const [selectedUid, setSelectedUid] = useState(null);
   const [deleteUid, setDeleteUid] = useState(null);
   const [appUrl, setAppUrl] = useState('');
+  const [deferredInstallPrompt, setDeferredInstallPrompt] = useState(null);
+  const [standalone, setStandalone] = useState(isStandaloneMode());
+  const [permission, setPermission] = useState(notificationStatus());
   const labels = labelsFor(state.language);
+  const platform = detectPlatform();
 
   useEffect(() => { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {} }, [state]);
   useEffect(() => { if (typeof document !== 'undefined') { document.documentElement.lang = state.language; document.documentElement.dir = RTL_LANGUAGES.has(state.language) ? 'rtl' : 'ltr'; } }, [state.language]);
   useEffect(() => { if (typeof window !== 'undefined') setAppUrl(window.location.origin + window.location.pathname); }, []);
+  useEffect(() => {
+    function onBeforeInstallPrompt(event) { event.preventDefault(); setDeferredInstallPrompt(event); }
+    function onInstalled() { setStandalone(true); setDeferredInstallPrompt(null); }
+    window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+    window.addEventListener('appinstalled', onInstalled);
+    return () => { window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt); window.removeEventListener('appinstalled', onInstalled); };
+  }, []);
 
   const selected = useMemo(() => state.items.find((i) => i.uid === selectedUid), [state.items, selectedUid]);
   const deleteItem = useMemo(() => state.items.find((i) => i.uid === deleteUid), [state.items, deleteUid]);
+
+  async function installApp() {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    setDeferredInstallPrompt(null);
+    setStandalone(isStandaloneMode());
+  }
+
+  async function askNotifications() {
+    const current = notificationStatus();
+    if (current === 'unsupported' || current === 'denied') { setPermission(current); return; }
+    try { setPermission(await window.Notification.requestPermission()); } catch { setPermission('unsupported'); }
+  }
+
+  const installProps = { deferredInstallPrompt, standalone, platform, onInstall: installApp, permission, askNotifications };
 
   const actions = {
     setTab: (tab) => setState((s) => ({ ...s, tab })),
@@ -199,5 +255,5 @@ export default function App() {
 
   if (!state.onboarded) return <Onboarding state={state} setState={setState} labels={labels} />;
 
-  return <div className="min-h-screen bg-slate-50 pb-24 text-slate-950 sm:pb-10"><Toast toast={state.toast} close={() => setState((s) => ({ ...s, toast: null }))} /><DeleteDialog item={deleteItem} labels={labels} cancel={actions.cancelDelete} confirm={actions.confirmDelete} /><Header labels={labels} actions={actions} /><main className="mx-auto max-w-6xl px-4 py-6"><Nav labels={labels} tab={state.tab} setTab={actions.setTab} />{state.tab === 'home' && <Home state={state} labels={labels} actions={actions} />}{state.tab === 'alerts' && <Alerts state={state} labels={labels} actions={actions} />}{state.tab === 'settings' && <Settings state={state} labels={labels} setState={setState} appUrl={appUrl} />}{state.tab === 'guides' && <Guides labels={labels} setTab={actions.setTab} />}{state.tab === 'detail' && <Detail item={selected} labels={labels} actions={actions} />}</main><BottomNav labels={labels} tab={state.tab} setTab={actions.setTab} /></div>;
+  return <div className="min-h-screen bg-slate-50 pb-24 text-slate-950 sm:pb-10"><Toast toast={state.toast} close={() => setState((s) => ({ ...s, toast: null }))} /><DeleteDialog item={deleteItem} labels={labels} cancel={actions.cancelDelete} confirm={actions.confirmDelete} /><Header labels={labels} actions={actions} /><main className="mx-auto max-w-6xl px-4 py-6"><Nav labels={labels} tab={state.tab} setTab={actions.setTab} />{state.tab === 'home' && <Home state={state} labels={labels} actions={actions} installProps={installProps} />}{state.tab === 'alerts' && <Alerts state={state} labels={labels} actions={actions} />}{state.tab === 'settings' && <Settings state={state} labels={labels} setState={setState} appUrl={appUrl} installProps={installProps} />}{state.tab === 'guides' && <Guides labels={labels} setTab={actions.setTab} />}{state.tab === 'detail' && <Detail item={selected} labels={labels} actions={actions} />}</main><BottomNav labels={labels} tab={state.tab} setTab={actions.setTab} /></div>;
 }
