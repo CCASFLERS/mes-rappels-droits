@@ -140,125 +140,13 @@ const GOOGLE_TRANSLATE_LANG = {
 
 const SIMPLIFIED_GUIDES = {
   impots_revenus: {
-    fr: {
-      title: 'Déclarer ses revenus',
-      intro: 'Guide simplifié pour déclarer ses revenus dans l’application mobile impots.gouv.',
-      warning: 'Ce guide aide à suivre les étapes. Avant de signer, vérifiez toujours les informations personnelles affichées.',
-      steps: [
-        'Ouvrir l’application impots.gouv.',
-        'Se connecter à son espace personnel.',
-        'Appuyer sur “Déclarer mes revenus”.',
-        'Lire la page d’introduction et vérifier la date limite affichée.',
-        'Vérifier la situation du foyer : famille, personnes à charge, adresse et compte bancaire.',
-        'Vérifier les revenus affichés. Ouvrir les lignes si besoin pour voir le détail.',
-        'Vérifier les charges. Modifier ou ajouter seulement si la personne est concernée.',
-        'Lire le récapitulatif avec attention.',
-        'Si tout est correct, appuyer sur “Valider”, puis sur “Signer ma déclaration”.',
-        'Conserver l’accusé de réception dans les documents.'
-      ]
-    },
-    uk: {
-      title: 'Подати декларацію про доходи',
-      intro: 'Спрощений гід для декларації доходів у мобільному застосунку impots.gouv.',
-      warning: 'Цей гід допомагає пройти кроки. Перед підписом завжди перевіряйте особисті дані.',
-      steps: [
-        'Відкрити застосунок impots.gouv.',
-        'Увійти до особистого кабінету.',
-        'Натиснути “Déclarer mes revenus”.',
-        'Прочитати вступну сторінку та перевірити кінцеву дату.',
-        'Перевірити сімейну ситуацію, утриманців, адресу та банківський рахунок.',
-        'Перевірити доходи. Відкрити рядки, якщо потрібно побачити деталі.',
-        'Перевірити витрати. Змінювати або додавати лише якщо це стосується людини.',
-        'Уважно прочитати підсумок.',
-        'Якщо все правильно, натиснути “Valider”, потім “Signer ma déclaration”.',
-        'Зберегти підтвердження отримання в документах.'
-      ]
-    },
-    ar: {
-      title: 'التصريح بالدخل',
-      intro: 'دليل مبسط للتصريح بالدخل في تطبيق impots.gouv على الهاتف.',
-      warning: 'هذا الدليل يساعد على اتباع الخطوات. قبل التوقيع، يجب دائماً التحقق من المعلومات الشخصية.',
-      steps: [
-        'افتح تطبيق impots.gouv.',
-        'سجّل الدخول إلى المساحة الشخصية.',
-        'اضغط على “Déclarer mes revenus”.',
-        'اقرأ صفحة البداية وتحقق من آخر موعد ظاهر.',
-        'تحقق من وضع الأسرة: الحالة العائلية، الأشخاص المعالون، العنوان والحساب البنكي.',
-        'تحقق من الدخل المعروض. افتح السطور إذا احتجت إلى التفاصيل.',
-        'تحقق من المصاريف. عدّل أو أضف فقط إذا كان الشخص معنيًا.',
-        'اقرأ الملخص بعناية.',
-        'إذا كان كل شيء صحيحًا، اضغط “Valider”، ثم “Signer ma déclaration”.',
-        'احتفظ بإيصال الاستلام في الوثائق.'
-      ]
-    },
-    fa: {
-      title: 'اعلام درآمدها',
-      intro: 'راهنمای ساده برای اعلام درآمدها در برنامه موبایل impots.gouv.',
-      warning: 'این راهنما فقط برای دنبال کردن مراحل است. پیش از امضا، اطلاعات شخصی را با دقت بررسی کنید.',
-      steps: [
-        'برنامه impots.gouv را باز کنید.',
-        'وارد فضای شخصی خود شوید.',
-        'روی “Déclarer mes revenus” بزنید.',
-        'صفحه معرفی را بخوانید و آخرین مهلت نمایش‌داده‌شده را بررسی کنید.',
-        'وضعیت خانواده، افراد تحت تکفل، آدرس و حساب بانکی را بررسی کنید.',
-        'درآمدهای نمایش‌داده‌شده را بررسی کنید. در صورت نیاز، ردیف‌ها را برای جزئیات باز کنید.',
-        'هزینه‌ها را بررسی کنید. فقط اگر مربوط به شماست، تغییر دهید یا اضافه کنید.',
-        'خلاصه را با دقت بخوانید.',
-        'اگر همه چیز درست است، روی “Valider” و سپس “Signer ma déclaration” بزنید.',
-        'رسید دریافت را در بخش اسناد نگه دارید.'
-      ]
-    },
-    ps: {
-      title: 'د عايداتو اعلان کول',
-      intro: 'په impots.gouv موبایل اپ کې د عايداتو د اعلان لپاره ساده لارښود.',
-      warning: 'دا لارښود د مرحلو د تعقیب لپاره دی. له لاسلیک مخکې خپل شخصي معلومات حتماً وګورئ.',
-      steps: [
-        'د impots.gouv اپ خلاص کړئ.',
-        'خپل شخصي حساب ته ننوځئ.',
-        'پر “Déclarer mes revenus” کلیک وکړئ.',
-        'د پیل پاڼه ولولئ او وروستۍ نېټه وګورئ.',
-        'د کورنۍ حالت، تر کفالت لاندې کسان، پته او بانکي حساب وګورئ.',
-        'ښودل شوي عايدات وګورئ. که اړتیا وي، د جزئیاتو لپاره کرښې خلاصې کړئ.',
-        'لګښتونه وګورئ. یوازې هغه څه بدل یا زیات کړئ چې ستاسو پورې اړه لري.',
-        'لنډیز په دقت ولولئ.',
-        'که هر څه سم وي، “Valider” او بیا “Signer ma déclaration” ووهئ.',
-        'د رسید ثبوت په اسنادو کې وساتئ.'
-      ]
-    },
-    tr: {
-      title: 'Gelir beyanı yapmak',
-      intro: 'impots.gouv mobil uygulamasında gelir beyanı yapmak için sadeleştirilmiş rehber.',
-      warning: 'Bu rehber adımları takip etmeye yardımcı olur. İmzalamadan önce kişisel bilgileri mutlaka kontrol edin.',
-      steps: [
-        'impots.gouv uygulamasını açın.',
-        'Kişisel hesabınıza giriş yapın.',
-        '“Déclarer mes revenus” düğmesine basın.',
-        'Giriş sayfasını okuyun ve gösterilen son tarihi kontrol edin.',
-        'Aile durumu, bakmakla yükümlü kişiler, adres ve banka hesabını kontrol edin.',
-        'Gösterilen gelirleri kontrol edin. Gerekirse ayrıntıları görmek için satırları açın.',
-        'Giderleri kontrol edin. Sadece ilgiliyse değiştirin veya ekleyin.',
-        'Özeti dikkatle okuyun.',
-        'Her şey doğruysa “Valider”, sonra “Signer ma déclaration” düğmesine basın.',
-        'Alındı belgesini belgeler bölümünde saklayın.'
-      ]
-    },
-    so: {
-      title: 'Soo sheeg dakhligaaga',
-      intro: 'Hagid fudud oo lagu buuxiyo dakhliga gudaha app-ka impots.gouv.',
-      warning: 'Hagiddan waxay kaa caawinaysaa tallaabooyinka. Ka hor saxiixa, si fiican u hubi macluumaadkaaga.',
-      steps: [
-        'Fur app-ka impots.gouv.',
-        'Gal akoonkaaga gaarka ah.',
-        'Riix “Déclarer mes revenus”.',
-        'Akhri bogga bilowga oo hubi taariikhda kama dambaysta ah.',
-        'Hubi xaaladda qoyska, dadka kugu tiirsan, cinwaanka iyo koontada bangiga.',
-        'Hubi dakhliga la muujiyay. Fur safafka haddii aad rabto faahfaahin.',
-        'Hubi kharashaadka. Wax ka beddel ama ku dar kaliya haddii ay ku khusayso.',
-        'Si taxaddar leh u akhri soo koobidda.',
-        'Haddii wax walba sax yihiin, riix “Valider”, kadib “Signer ma déclaration”.',
-        'Kaydi caddeynta helitaanka dukumentiyada.'
-      ]
-    }
+    fr: { title: 'Déclarer ses revenus', intro: '', warning: '', steps: [] },
+    uk: { title: 'Подати декларацію про доходи', intro: '', warning: '', steps: [] },
+    ar: { title: 'التصريح بالدخل', intro: '', warning: '', steps: [] },
+    fa: { title: 'اعلام درآمدها', intro: '', warning: '', steps: [] },
+    ps: { title: 'د عايداتو اعلان کول', intro: '', warning: '', steps: [] },
+    tr: { title: 'Gelir beyanı yapmak', intro: '', warning: '', steps: [] },
+    so: { title: 'Soo sheeg dakhligaaga', intro: '', warning: '', steps: [] }
   }
 };
 SIMPLIFIED_GUIDES.impots_revenus.dari = SIMPLIFIED_GUIDES.impots_revenus.fa;
@@ -381,7 +269,7 @@ function Guides({ labels, setTab, language, selectedGuideId, openGuide }) {
   const guideUi = guideUiFor(language);
 
   if (guide && catalog) {
-    return <div className="space-y-6"><Button variant="ghost" onClick={() => setTab('home')}>← {labels.back}</Button><Card><CardContent className="p-5"><div className="flex items-start gap-3"><div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-3xl">{catalog.icon}</div><div><h1 className="text-3xl font-bold">{guide.title}</h1><p className="mt-1 text-slate-600">{guide.intro}</p></div></div><div className="mt-5 rounded-2xl bg-amber-50 p-4 text-sm text-amber-950">{guide.warning}</div><ol className="mt-5 space-y-3">{guide.steps.map((step, index) => <li key={index} className="flex gap-3 rounded-2xl bg-slate-50 p-3"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-900 text-sm font-bold text-white">{index + 1}</span><span className="text-slate-700">{step}</span></li>)}</ol><div className="mt-6 grid grid-cols-1 gap-2 sm:grid-cols-2">{officialUrl ? <Button variant="outline" onClick={() => window.open(officialUrl, '_blank', 'noopener,noreferrer')}>{guideUi.official}</Button> : null}{translatedUrl ? <Button onClick={() => window.open(translatedUrl, '_blank', 'noopener,noreferrer')}>{guideUi.translated}</Button> : null}</div><p className="mt-3 text-xs text-slate-500">{guideUi.notice}</p></CardContent></Card></div>;
+    return <div className="space-y-6"><Button variant="ghost" onClick={() => setTab('home')}>← {labels.back}</Button><Card><CardContent className="p-6 sm:p-8"><div className="flex items-start gap-4"><div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-3xl bg-slate-100 text-4xl">{catalog.icon}</div><div><h1 className="text-3xl font-bold">{labels.guideStep} — {catalog.title}</h1><p className="mt-2 text-slate-600">Ouvrir le guide officiel ou sa traduction automatique selon la langue choisie.</p></div></div><div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">{officialUrl ? <Button className="py-6 text-base" variant="default" onClick={() => window.open(officialUrl, '_blank', 'noopener,noreferrer')}>🌐 {guideUi.official}</Button> : null}{translatedUrl ? <Button className="py-6 text-base" variant="outline" onClick={() => window.open(translatedUrl, '_blank', 'noopener,noreferrer')}>🌍 {guideUi.translated}</Button> : null}</div><div className="mt-5 rounded-2xl bg-amber-50 p-4 text-sm text-amber-950">{guideUi.notice}</div></CardContent></Card></div>;
   }
 
   return <div className="space-y-6"><div><h1 className="text-3xl font-bold">{labels.guidesTitle}</h1><p className="mt-1 text-slate-600">{labels.guidesIntro}</p></div><Card><CardContent className="p-5"><div className="grid grid-cols-1 gap-3 md:grid-cols-2">{CATALOG.filter((c) => c.id !== 'custom').map((c) => { const hasGuide = Boolean(SIMPLIFIED_GUIDES[c.id]); return <button key={c.id} type="button" onClick={() => hasGuide ? openGuide(c.id) : null} className="rounded-2xl bg-slate-50 p-4 text-left"><div className="font-semibold">📘 {labels.guideStep} — {c.title}</div><div className="mt-1 text-sm text-slate-600">{hasGuide ? guideUi.available : labels.guideComing}</div></button>; })}</div><Button className="mt-5" onClick={() => setTab('home')}>{labels.back}</Button></CardContent></Card></div>;
