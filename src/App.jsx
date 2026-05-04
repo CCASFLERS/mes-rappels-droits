@@ -116,11 +116,152 @@ const CATALOG = [
   { id: 'css_sante', rule: 'css_sante', title: 'CSS / Santé', short: 'Renouvellement annuel', cat: 'Santé', icon: '🏥', timing: 'Droits CSS accordés pour 1 an. Renouvellement entre 4 et 2 mois avant la fin.' },
   { id: 'ame', rule: 'ame', title: 'AME', short: 'Renouvellement annuel', cat: 'Santé', icon: '🩺', timing: 'Renouvellement à déposer dans les 2 mois avant expiration.' },
   { id: 'logement_social', rule: 'logement_social', title: 'Logement social', short: 'Renouvellement annuel', cat: 'Logement', icon: '🏠', timing: 'Renouvellement annuel entre le 10e et le 12e mois.' },
+  { id: 'impots_revenus', rule: 'custom', title: 'Impôts — déclaration de revenus', short: 'Déclaration annuelle', cat: 'Impôts', icon: '🧾', timing: 'La date limite dépend du département ou de la situation. Vérifier la date affichée dans l’application impots.gouv.' },
   { id: 'mdph', rule: 'mdph_long', title: 'MDPH — dossier général', short: 'Renouvellement à anticiper', cat: 'Handicap', icon: '📁', timing: 'Renouvellement conseillé 6 mois avant la fin des droits.' },
   { id: 'aah_mdph', rule: 'mdph_long', title: 'AAH — renouvellement MDPH', short: 'Renouvellement à anticiper', cat: 'Handicap', icon: '♿', timing: 'Renouvellement AAH conseillé 6 mois avant la fin des droits.' },
   { id: 'rqth', rule: 'mdph_long', title: 'RQTH', short: 'Renouvellement à anticiper', cat: 'Handicap', icon: '🧩', timing: 'Renouvellement MDPH à anticiper avant l’échéance.' },
   { id: 'custom', rule: 'custom', title: 'Autre rappel', short: 'Rappel personnalisé', cat: 'Personnalisé', icon: '📌', timing: 'Rappel personnalisé.' },
 ];
+
+const OFFICIAL_GUIDE_URLS = {
+  impots_revenus: 'https://www.impots.gouv.fr/sites/default/files/aide/pas-a-pas/declarer/declarer-revenus.html'
+};
+
+const GOOGLE_TRANSLATE_LANG = {
+  fr: 'fr',
+  uk: 'uk',
+  ar: 'ar',
+  fa: 'fa',
+  dari: 'fa',
+  ps: 'ps',
+  tr: 'tr',
+  so: 'so'
+};
+
+const SIMPLIFIED_GUIDES = {
+  impots_revenus: {
+    fr: {
+      title: 'Déclarer ses revenus',
+      intro: 'Guide simplifié pour déclarer ses revenus dans l’application mobile impots.gouv.',
+      warning: 'Ce guide aide à suivre les étapes. Avant de signer, vérifiez toujours les informations personnelles affichées.',
+      steps: [
+        'Ouvrir l’application impots.gouv.',
+        'Se connecter à son espace personnel.',
+        'Appuyer sur “Déclarer mes revenus”.',
+        'Lire la page d’introduction et vérifier la date limite affichée.',
+        'Vérifier la situation du foyer : famille, personnes à charge, adresse et compte bancaire.',
+        'Vérifier les revenus affichés. Ouvrir les lignes si besoin pour voir le détail.',
+        'Vérifier les charges. Modifier ou ajouter seulement si la personne est concernée.',
+        'Lire le récapitulatif avec attention.',
+        'Si tout est correct, appuyer sur “Valider”, puis sur “Signer ma déclaration”.',
+        'Conserver l’accusé de réception dans les documents.'
+      ]
+    },
+    uk: {
+      title: 'Подати декларацію про доходи',
+      intro: 'Спрощений гід для декларації доходів у мобільному застосунку impots.gouv.',
+      warning: 'Цей гід допомагає пройти кроки. Перед підписом завжди перевіряйте особисті дані.',
+      steps: [
+        'Відкрити застосунок impots.gouv.',
+        'Увійти до особистого кабінету.',
+        'Натиснути “Déclarer mes revenus”.',
+        'Прочитати вступну сторінку та перевірити кінцеву дату.',
+        'Перевірити сімейну ситуацію, утриманців, адресу та банківський рахунок.',
+        'Перевірити доходи. Відкрити рядки, якщо потрібно побачити деталі.',
+        'Перевірити витрати. Змінювати або додавати лише якщо це стосується людини.',
+        'Уважно прочитати підсумок.',
+        'Якщо все правильно, натиснути “Valider”, потім “Signer ma déclaration”.',
+        'Зберегти підтвердження отримання в документах.'
+      ]
+    },
+    ar: {
+      title: 'التصريح بالدخل',
+      intro: 'دليل مبسط للتصريح بالدخل في تطبيق impots.gouv على الهاتف.',
+      warning: 'هذا الدليل يساعد على اتباع الخطوات. قبل التوقيع، يجب دائماً التحقق من المعلومات الشخصية.',
+      steps: [
+        'افتح تطبيق impots.gouv.',
+        'سجّل الدخول إلى المساحة الشخصية.',
+        'اضغط على “Déclarer mes revenus”.',
+        'اقرأ صفحة البداية وتحقق من آخر موعد ظاهر.',
+        'تحقق من وضع الأسرة: الحالة العائلية، الأشخاص المعالون، العنوان والحساب البنكي.',
+        'تحقق من الدخل المعروض. افتح السطور إذا احتجت إلى التفاصيل.',
+        'تحقق من المصاريف. عدّل أو أضف فقط إذا كان الشخص معنيًا.',
+        'اقرأ الملخص بعناية.',
+        'إذا كان كل شيء صحيحًا، اضغط “Valider”، ثم “Signer ma déclaration”.',
+        'احتفظ بإيصال الاستلام في الوثائق.'
+      ]
+    },
+    fa: {
+      title: 'اعلام درآمدها',
+      intro: 'راهنمای ساده برای اعلام درآمدها در برنامه موبایل impots.gouv.',
+      warning: 'این راهنما فقط برای دنبال کردن مراحل است. پیش از امضا، اطلاعات شخصی را با دقت بررسی کنید.',
+      steps: [
+        'برنامه impots.gouv را باز کنید.',
+        'وارد فضای شخصی خود شوید.',
+        'روی “Déclarer mes revenus” بزنید.',
+        'صفحه معرفی را بخوانید و آخرین مهلت نمایش‌داده‌شده را بررسی کنید.',
+        'وضعیت خانواده، افراد تحت تکفل، آدرس و حساب بانکی را بررسی کنید.',
+        'درآمدهای نمایش‌داده‌شده را بررسی کنید. در صورت نیاز، ردیف‌ها را برای جزئیات باز کنید.',
+        'هزینه‌ها را بررسی کنید. فقط اگر مربوط به شماست، تغییر دهید یا اضافه کنید.',
+        'خلاصه را با دقت بخوانید.',
+        'اگر همه چیز درست است، روی “Valider” و سپس “Signer ma déclaration” بزنید.',
+        'رسید دریافت را در بخش اسناد نگه دارید.'
+      ]
+    },
+    ps: {
+      title: 'د عايداتو اعلان کول',
+      intro: 'په impots.gouv موبایل اپ کې د عايداتو د اعلان لپاره ساده لارښود.',
+      warning: 'دا لارښود د مرحلو د تعقیب لپاره دی. له لاسلیک مخکې خپل شخصي معلومات حتماً وګورئ.',
+      steps: [
+        'د impots.gouv اپ خلاص کړئ.',
+        'خپل شخصي حساب ته ننوځئ.',
+        'پر “Déclarer mes revenus” کلیک وکړئ.',
+        'د پیل پاڼه ولولئ او وروستۍ نېټه وګورئ.',
+        'د کورنۍ حالت، تر کفالت لاندې کسان، پته او بانکي حساب وګورئ.',
+        'ښودل شوي عايدات وګورئ. که اړتیا وي، د جزئیاتو لپاره کرښې خلاصې کړئ.',
+        'لګښتونه وګورئ. یوازې هغه څه بدل یا زیات کړئ چې ستاسو پورې اړه لري.',
+        'لنډیز په دقت ولولئ.',
+        'که هر څه سم وي، “Valider” او بیا “Signer ma déclaration” ووهئ.',
+        'د رسید ثبوت په اسنادو کې وساتئ.'
+      ]
+    },
+    tr: {
+      title: 'Gelir beyanı yapmak',
+      intro: 'impots.gouv mobil uygulamasında gelir beyanı yapmak için sadeleştirilmiş rehber.',
+      warning: 'Bu rehber adımları takip etmeye yardımcı olur. İmzalamadan önce kişisel bilgileri mutlaka kontrol edin.',
+      steps: [
+        'impots.gouv uygulamasını açın.',
+        'Kişisel hesabınıza giriş yapın.',
+        '“Déclarer mes revenus” düğmesine basın.',
+        'Giriş sayfasını okuyun ve gösterilen son tarihi kontrol edin.',
+        'Aile durumu, bakmakla yükümlü kişiler, adres ve banka hesabını kontrol edin.',
+        'Gösterilen gelirleri kontrol edin. Gerekirse ayrıntıları görmek için satırları açın.',
+        'Giderleri kontrol edin. Sadece ilgiliyse değiştirin veya ekleyin.',
+        'Özeti dikkatle okuyun.',
+        'Her şey doğruysa “Valider”, sonra “Signer ma déclaration” düğmesine basın.',
+        'Alındı belgesini belgeler bölümünde saklayın.'
+      ]
+    },
+    so: {
+      title: 'Soo sheeg dakhligaaga',
+      intro: 'Hagid fudud oo lagu buuxiyo dakhliga gudaha app-ka impots.gouv.',
+      warning: 'Hagiddan waxay kaa caawinaysaa tallaabooyinka. Ka hor saxiixa, si fiican u hubi macluumaadkaaga.',
+      steps: [
+        'Fur app-ka impots.gouv.',
+        'Gal akoonkaaga gaarka ah.',
+        'Riix “Déclarer mes revenus”.',
+        'Akhri bogga bilowga oo hubi taariikhda kama dambaysta ah.',
+        'Hubi xaaladda qoyska, dadka kugu tiirsan, cinwaanka iyo koontada bangiga.',
+        'Hubi dakhliga la muujiyay. Fur safafka haddii aad rabto faahfaahin.',
+        'Hubi kharashaadka. Wax ka beddel ama ku dar kaliya haddii ay ku khusayso.',
+        'Si taxaddar leh u akhri soo koobidda.',
+        'Haddii wax walba sax yihiin, riix “Valider”, kadib “Signer ma déclaration”.',
+        'Kaydi caddeynta helitaanka dukumentiyada.'
+      ]
+    }
+  }
+};
+SIMPLIFIED_GUIDES.impots_revenus.dari = SIMPLIFIED_GUIDES.impots_revenus.fa;
 
 function labelsFor(language) { return UI[language] || UI.fr; }
 function catalogFor(item) { return CATALOG.find((c) => c.id === item.catalogId) || CATALOG.find((c) => c.id === 'custom'); }
@@ -146,6 +287,18 @@ function initialState() { return { language: 'fr', onboarded: false, tab: 'home'
 function loadState() { try { const saved = localStorage.getItem(STORAGE_KEY); if (saved) { const parsed = JSON.parse(saved); return { ...initialState(), ...parsed, items: Array.isArray(parsed.items) ? parsed.items.map(normalizeItem) : [] }; } } catch {} return initialState(); }
 function upcomingAlerts(items) { return items.filter((item) => Boolean(item.nextDate)).flatMap((item) => { if (item.rule === 'france_travail') { const openingDate = franceTravailOpeningDate(item.nextDate); return [{ ...item, reminderDate: openingDate, offset: 'opening', label: 'Ouverture de l’actualisation' }, ...reminderOffsets(item.rule).map((offset) => ({ ...item, reminderDate: addDays(item.nextDate, offset), offset }))]; } return reminderOffsets(item.rule).map((offset) => ({ ...item, reminderDate: addDays(item.nextDate, offset), offset })); }).filter((r) => daysUntil(r.reminderDate) >= 0).sort((a, b) => parseDate(a.reminderDate) - parseDate(b.reminderDate)).slice(0, 12); }
 function notificationStatus() { if (typeof window === 'undefined' || !('Notification' in window)) return 'unsupported'; return window.Notification.permission; }
+function officialGuideUrlFor(catalogId, language) { const url = OFFICIAL_GUIDE_URLS[catalogId]; if (!url) return ''; const target = GOOGLE_TRANSLATE_LANG[language] || 'fr'; if (target === 'fr') return url; return `https://translate.google.com/translate?sl=fr&tl=${encodeURIComponent(target)}&u=${encodeURIComponent(url)}`; }
+function simplifiedGuideFor(catalogId, language) { const guide = SIMPLIFIED_GUIDES[catalogId]; if (!guide) return null; return guide[language] || guide.fr; }
+function guideUiFor(language) { const map = {
+  fr: { official: 'Source officielle', translated: 'Ouvrir traduit automatiquement', notice: 'Traduction automatique possible par Google. En cas de doute, vérifier avec le site officiel ou un accompagnant.', available: 'Guide simplifié disponible.' },
+  uk: { official: 'Офіційне джерело', translated: 'Відкрити автоматичний переклад', notice: 'Автоматичний переклад може містити помилки. У разі сумніву перевірте офіційний сайт або зверніться до супроводжуючого.', available: 'Спрощений гід доступний.' },
+  ar: { official: 'المصدر الرسمي', translated: 'فتح الترجمة التلقائية', notice: 'قد تحتوي الترجمة التلقائية على أخطاء. عند الشك، تحقق من الموقع الرسمي أو اطلب المساعدة.', available: 'الدليل المبسط متاح.' },
+  fa: { official: 'منبع رسمی', translated: 'باز کردن ترجمه خودکار', notice: 'ترجمه خودکار ممکن است خطا داشته باشد. در صورت تردید، سایت رسمی یا یک همراه را بررسی کنید.', available: 'راهنمای ساده موجود است.' },
+  dari: { official: 'منبع رسمی', translated: 'باز کردن ترجمه خودکار', notice: 'ترجمه خودکار ممکن است خطا داشته باشد. در صورت شک، سایت رسمی یا یک همراه را بررسی کنید.', available: 'راهنمای ساده موجود است.' },
+  ps: { official: 'رسمي سرچينه', translated: 'اتومات ژباړه پرانیزئ', notice: 'اتومات ژباړه کېدای شي تېروتنې ولري. که شک وي، رسمي پاڼه یا یو ملګری وګورئ.', available: 'ساده لارښود شته.' },
+  tr: { official: 'Resmi kaynak', translated: 'Otomatik çeviriyi aç', notice: 'Otomatik çeviri hata içerebilir. Şüphe varsa resmi siteyi veya bir refakatçiyi kontrol edin.', available: 'Sadeleştirilmiş rehber mevcut.' },
+  so: { official: 'Isha rasmiga ah', translated: 'Fur turjumaad otomaatig ah', notice: 'Turjumaadda otomaatigga ah khalad way yeelan kartaa. Haddii shaki jiro, hubi bogga rasmiga ah ama weydii qof ku caawiya.', available: 'Hagid fudud ayaa diyaar ah.' }
+}; return map[language] || map.fr; }
 function isStandaloneMode() { if (typeof window === 'undefined') return false; return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true; }
 function detectPlatform() { if (typeof navigator === 'undefined') return 'other'; const ua = navigator.userAgent || ''; if (/iphone|ipad|ipod/i.test(ua)) return 'ios'; if (/android/i.test(ua)) return 'android'; return 'other'; }
 
@@ -220,7 +373,19 @@ function Alerts({ state, labels, actions, permission, setPermission }) {
 
 function Settings({ state, labels, setState, appUrl, installProps }) { return <div className="space-y-6"><div><h1 className="text-3xl font-bold">{labels.settings}</h1><p className="mt-1 text-slate-600">{labels.settingsIntro}</p></div><InstallPanel labels={labels} {...installProps} /><Card><CardContent className="p-5"><h2 className="text-lg font-bold">🌐 {labels.language}</h2><div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-4">{LANGUAGES.map((lang) => <Button key={lang.code} variant={state.language === lang.code ? 'default' : 'outline'} className="justify-start" onClick={() => setState((s) => ({ ...s, language: lang.code, toast: { title: labelsFor(lang.code).saved, body: lang.label } }))}>{lang.label}</Button>)}</div></CardContent></Card><Card><CardContent className="p-5"><h2 className="text-lg font-bold">📱 {labels.shareApp}</h2><p className="mt-1 text-slate-600">{labels.scanToInstall}</p><div className="mt-4 inline-block rounded-2xl bg-white p-4 shadow-sm"><QRCodeSVG value={appUrl} size={220} includeMargin /></div><p className="mt-3 max-w-xl text-sm text-slate-600">{labels.installHelp}</p><p className="mt-2 break-all rounded-xl bg-slate-50 p-3 text-xs text-slate-600">{appUrl}</p></CardContent></Card></div>; }
 
-function Guides({ labels, setTab }) { return <div className="space-y-6"><div><h1 className="text-3xl font-bold">{labels.guidesTitle}</h1><p className="mt-1 text-slate-600">{labels.guidesIntro}</p></div><Card><CardContent className="p-5"><div className="grid grid-cols-1 gap-3 md:grid-cols-2">{CATALOG.filter((c) => c.id !== 'custom').map((c) => <div key={c.id} className="rounded-2xl bg-slate-50 p-4"><div className="font-semibold">📘 {labels.guideStep} — {c.title}</div><div className="mt-1 text-sm text-slate-600">{labels.guideComing}</div></div>)}</div><Button className="mt-5" onClick={() => setTab('home')}>{labels.back}</Button></CardContent></Card></div>; }
+function Guides({ labels, setTab, language, selectedGuideId, openGuide }) {
+  const catalog = CATALOG.find((c) => c.id === selectedGuideId) || null;
+  const guide = catalog ? simplifiedGuideFor(catalog.id, language) : null;
+  const officialUrl = catalog ? OFFICIAL_GUIDE_URLS[catalog.id] : '';
+  const translatedUrl = catalog ? officialGuideUrlFor(catalog.id, language) : '';
+  const guideUi = guideUiFor(language);
+
+  if (guide && catalog) {
+    return <div className="space-y-6"><Button variant="ghost" onClick={() => setTab('home')}>← {labels.back}</Button><Card><CardContent className="p-5"><div className="flex items-start gap-3"><div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-3xl">{catalog.icon}</div><div><h1 className="text-3xl font-bold">{guide.title}</h1><p className="mt-1 text-slate-600">{guide.intro}</p></div></div><div className="mt-5 rounded-2xl bg-amber-50 p-4 text-sm text-amber-950">{guide.warning}</div><ol className="mt-5 space-y-3">{guide.steps.map((step, index) => <li key={index} className="flex gap-3 rounded-2xl bg-slate-50 p-3"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-900 text-sm font-bold text-white">{index + 1}</span><span className="text-slate-700">{step}</span></li>)}</ol><div className="mt-6 grid grid-cols-1 gap-2 sm:grid-cols-2">{officialUrl ? <Button variant="outline" onClick={() => window.open(officialUrl, '_blank', 'noopener,noreferrer')}>{guideUi.official}</Button> : null}{translatedUrl ? <Button onClick={() => window.open(translatedUrl, '_blank', 'noopener,noreferrer')}>{guideUi.translated}</Button> : null}</div><p className="mt-3 text-xs text-slate-500">{guideUi.notice}</p></CardContent></Card></div>;
+  }
+
+  return <div className="space-y-6"><div><h1 className="text-3xl font-bold">{labels.guidesTitle}</h1><p className="mt-1 text-slate-600">{labels.guidesIntro}</p></div><Card><CardContent className="p-5"><div className="grid grid-cols-1 gap-3 md:grid-cols-2">{CATALOG.filter((c) => c.id !== 'custom').map((c) => { const hasGuide = Boolean(SIMPLIFIED_GUIDES[c.id]); return <button key={c.id} type="button" onClick={() => hasGuide ? openGuide(c.id) : null} className="rounded-2xl bg-slate-50 p-4 text-left"><div className="font-semibold">📘 {labels.guideStep} — {c.title}</div><div className="mt-1 text-sm text-slate-600">{hasGuide ? guideUi.available : labels.guideComing}</div></button>; })}</div><Button className="mt-5" onClick={() => setTab('home')}>{labels.back}</Button></CardContent></Card></div>;
+}
 
 function Detail({ item, labels, actions }) { const [draft, setDraft] = useState(item); useEffect(() => setDraft(item), [item]); if (!draft) return null; const c = catalogFor(draft); return <div className="space-y-6"><Button variant="ghost" onClick={() => actions.setTab('home')}>← {labels.back}</Button><Card className="rounded-3xl"><CardContent className="p-6 sm:p-8"><div className="flex items-start gap-4"><div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-3xl bg-slate-100 text-4xl">{draft.icon}</div><div><h1 className="text-3xl font-bold">{draft.title}</h1><p className="mt-1 text-slate-600">{draft.short}</p></div></div><div className="mt-6 rounded-2xl bg-slate-50 p-4 text-sm text-slate-700"><div className="font-semibold">{labels.ruleApplied}</div><div className="mt-1">{c.timing}</div></div><div className="mt-6 space-y-4">{needsDate(draft) ? <label className="space-y-2 block"><span className="text-sm font-medium text-slate-700">{labels.dateToEnter}</span><input type="date" value={draft.nextDate} onChange={(e) => setDraft({ ...draft, nextDate: e.target.value })} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3" /></label> : <div className="rounded-2xl bg-white p-4 text-sm text-slate-700">{labels.dateAutoAfterDone}</div>}<label className="flex items-center gap-3 rounded-xl border border-slate-300 bg-white px-3 py-3"><input type="checkbox" checked={draft.notifications !== false} onChange={(e) => setDraft({ ...draft, notifications: e.target.checked })} /><span className="text-sm font-medium text-slate-700">{labels.reminderEnabled}</span></label><label className="space-y-2 block"><span className="text-sm font-medium text-slate-700">{labels.note}</span><textarea value={draft.note || ''} onChange={(e) => setDraft({ ...draft, note: e.target.value })} rows={4} className="w-full resize-none rounded-xl border border-slate-300 bg-white px-3 py-3" /></label></div><div className="mt-6 grid grid-cols-1 gap-2 sm:grid-cols-3"><Button variant="success" className="py-6" onClick={() => actions.done(draft.uid)}>✅ {labels.doneButton}</Button><Button className="py-6" onClick={() => actions.save(draft)}>💾 {labels.save}</Button><Button variant="outline" className="py-6" onClick={() => actions.askDelete(draft.uid)}>🗑 {labels.delete}</Button></div></CardContent></Card></div>; }
 
@@ -228,6 +393,7 @@ export default function App() {
   const [state, setState] = useState(loadState);
   const [selectedUid, setSelectedUid] = useState(null);
   const [deleteUid, setDeleteUid] = useState(null);
+  const [selectedGuideId, setSelectedGuideId] = useState(null);
   const [appUrl, setAppUrl] = useState('');
   const [deferredInstallPrompt, setDeferredInstallPrompt] = useState(null);
   const [standalone, setStandalone] = useState(isStandaloneMode());
@@ -370,7 +536,7 @@ export default function App() {
       setState((s) => ({ ...s, tab: 'home', items: s.items.map((i) => i.uid === uid ? { ...i, completedOnce: true, lastAction: todayISO(), nextDate: nextAfterDone(i) } : i), toast: { title: '✅', body: labels.doneButton } }));
     },
     edit: (item) => { setSelectedUid(item.uid); setState((s) => ({ ...s, tab: 'detail' })); },
-    guide: () => setState((s) => ({ ...s, tab: 'guides' })),
+    guide: (item) => { setSelectedGuideId(item.catalogId); setState((s) => ({ ...s, tab: 'guides' })); },
     save: (draft) => { setState((s) => ({ ...s, items: s.items.map((i) => i.uid === draft.uid ? normalizeItem(draft) : i), toast: { title: labels.saved, body: draft.title } })); },
     askDelete: (uid) => setDeleteUid(uid),
     cancelDelete: () => setDeleteUid(null),
@@ -379,5 +545,5 @@ export default function App() {
 
   if (!state.onboarded) return <Onboarding state={state} setState={setState} labels={labels} />;
 
-  return <div className="min-h-screen bg-slate-50 pb-24 text-slate-950 sm:pb-10"><Toast toast={state.toast} close={() => setState((s) => ({ ...s, toast: null }))} /><UpdateAvailableBanner show={Boolean(waitingWorker) && !updateDismissed} onUpdate={applyAppUpdate} onDismiss={() => setUpdateDismissed(true)} /><DeleteDialog item={deleteItem} labels={labels} cancel={actions.cancelDelete} confirm={actions.confirmDelete} /><Header labels={labels} actions={actions} /><main className="mx-auto max-w-6xl px-4 py-6"><Nav labels={labels} tab={state.tab} setTab={actions.setTab} />{state.tab === 'home' && <Home state={state} labels={labels} actions={actions} installProps={installProps} />}{state.tab === 'alerts' && <Alerts state={state} labels={labels} actions={actions} permission={permission} setPermission={setPermission} />}{state.tab === 'settings' && <Settings state={state} labels={labels} setState={setState} appUrl={appUrl} installProps={installProps} />}{state.tab === 'guides' && <Guides labels={labels} setTab={actions.setTab} />}{state.tab === 'detail' && <Detail item={selected} labels={labels} actions={actions} />}</main><BottomNav labels={labels} tab={state.tab} setTab={actions.setTab} /></div>;
+  return <div className="min-h-screen bg-slate-50 pb-24 text-slate-950 sm:pb-10"><Toast toast={state.toast} close={() => setState((s) => ({ ...s, toast: null }))} /><UpdateAvailableBanner show={Boolean(waitingWorker) && !updateDismissed} onUpdate={applyAppUpdate} onDismiss={() => setUpdateDismissed(true)} /><DeleteDialog item={deleteItem} labels={labels} cancel={actions.cancelDelete} confirm={actions.confirmDelete} /><Header labels={labels} actions={actions} /><main className="mx-auto max-w-6xl px-4 py-6"><Nav labels={labels} tab={state.tab} setTab={actions.setTab} />{state.tab === 'home' && <Home state={state} labels={labels} actions={actions} installProps={installProps} />}{state.tab === 'alerts' && <Alerts state={state} labels={labels} actions={actions} permission={permission} setPermission={setPermission} />}{state.tab === 'settings' && <Settings state={state} labels={labels} setState={setState} appUrl={appUrl} installProps={installProps} />}{state.tab === 'guides' && <Guides labels={labels} setTab={actions.setTab} language={state.language} selectedGuideId={selectedGuideId} openGuide={setSelectedGuideId} />}{state.tab === 'detail' && <Detail item={selected} labels={labels} actions={actions} />}</main><BottomNav labels={labels} tab={state.tab} setTab={actions.setTab} /></div>;
 }
