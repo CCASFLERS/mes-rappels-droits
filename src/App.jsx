@@ -162,6 +162,7 @@ function AddMenu({ actions, labels }) {
 function Toast({ toast, close }) { if (!toast) return null; return <div className="fixed left-4 right-4 top-20 z-50 mx-auto max-w-xl rounded-2xl border bg-white p-4 shadow-lg sm:left-auto sm:right-6 sm:w-96"><div className="flex items-start justify-between gap-3"><div><div className="font-bold">{toast.title}</div><div className="mt-1 text-sm text-slate-600">{toast.body}</div></div><button onClick={close} className="rounded-lg px-2 py-1 text-slate-500 hover:bg-slate-100">×</button></div></div>; }
 function EmptyState({ labels, actions }) { return <Card className="border-dashed"><CardContent className="p-6 text-center"><div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-2xl">➕</div><h3 className="text-lg font-semibold">{labels.nothingToDo}</h3><p className="mt-1 text-slate-600">{labels.emptyTodo}</p><div className="mt-5"><AddMenu actions={actions} labels={labels} /></div></CardContent></Card>; }
 function DeleteDialog({ item, labels, cancel, confirm }) { if (!item) return null; return <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4"><Card className="w-full max-w-md rounded-3xl shadow-xl"><CardContent className="p-6"><div className="text-3xl">🗑</div><h2 className="mt-3 text-xl font-bold">{labels.deleteTitle}</h2><p className="mt-2 text-slate-600"><strong>{item.title}</strong> — {labels.deleteText}</p><div className="mt-6 grid grid-cols-1 gap-2 sm:grid-cols-2"><Button variant="outline" className="py-3" onClick={cancel}>{labels.cancel}</Button><Button variant="destructive" className="py-3" onClick={confirm}>{labels.delete}</Button></div></CardContent></Card></div>; }
+function UpdateAvailableBanner({ show, onUpdate, onDismiss }) { if (!show) return null; return <div className="fixed bottom-20 left-4 right-4 z-50 mx-auto max-w-xl rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-lg sm:bottom-6 sm:left-auto sm:right-6 sm:w-96"><div className="font-bold text-amber-950">Nouvelle version disponible</div><div className="mt-1 text-sm text-amber-900">Une mise à jour de l’application est prête. Appuyez sur “Mettre à jour” pour charger la dernière version.</div><div className="mt-3 grid grid-cols-2 gap-2"><Button variant="outline" onClick={onDismiss}>Plus tard</Button><Button onClick={onUpdate}>Mettre à jour</Button></div></div>; }
 
 function ProcedureCard({ item, labels, actions }) {
   const todo = showAsTodo(item);
@@ -228,6 +229,8 @@ export default function App() {
   const [deferredInstallPrompt, setDeferredInstallPrompt] = useState(null);
   const [standalone, setStandalone] = useState(isStandaloneMode());
   const [permission, setPermission] = useState(notificationStatus());
+  const [waitingWorker, setWaitingWorker] = useState(null);
+  const [updateDismissed, setUpdateDismissed] = useState(false);
   const labels = labelsFor(state.language);
   const platform = detectPlatform();
 
@@ -240,6 +243,39 @@ export default function App() {
     window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
     window.addEventListener('appinstalled', onInstalled);
     return () => { window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt); window.removeEventListener('appinstalled', onInstalled); };
+  }, []);
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return undefined;
+    let refreshing = false;
+    function onControllerChange() {
+      if (refreshing) return;
+      refreshing = true;
+      window.location.reload();
+    }
+    function trackInstalling(worker) {
+      if (!worker) return;
+      worker.addEventListener('statechange', () => {
+        if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+          setWaitingWorker(worker);
+          setUpdateDismissed(false);
+        }
+      });
+    }
+    async function setupUpdateListener() {
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        if (registration.waiting) {
+          setWaitingWorker(registration.waiting);
+          setUpdateDismissed(false);
+        }
+        if (registration.installing) trackInstalling(registration.installing);
+        registration.addEventListener('updatefound', () => trackInstalling(registration.installing));
+        if (registration.update) registration.update();
+      } catch {}
+    }
+    navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
+    setupUpdateListener();
+    return () => navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
   }, []);
 
   const selected = useMemo(() => state.items.find((i) => i.uid === selectedUid), [state.items, selectedUid]);
@@ -306,6 +342,11 @@ export default function App() {
     }
   }
 
+  function applyAppUpdate() {
+    if (!waitingWorker) return;
+    waitingWorker.postMessage({ type: 'SKIP_WAITING' });
+  }
+
   const installProps = { deferredInstallPrompt, standalone, platform, onInstall: installApp, permission, askNotifications };
 
   const actions = {
@@ -335,5 +376,5 @@ export default function App() {
 
   if (!state.onboarded) return <Onboarding state={state} setState={setState} labels={labels} />;
 
-  return <div className="min-h-screen bg-slate-50 pb-24 text-slate-950 sm:pb-10"><Toast toast={state.toast} close={() => setState((s) => ({ ...s, toast: null }))} /><DeleteDialog item={deleteItem} labels={labels} cancel={actions.cancelDelete} confirm={actions.confirmDelete} /><Header labels={labels} actions={actions} /><main className="mx-auto max-w-6xl px-4 py-6"><Nav labels={labels} tab={state.tab} setTab={actions.setTab} />{state.tab === 'home' && <Home state={state} labels={labels} actions={actions} installProps={installProps} />}{state.tab === 'alerts' && <Alerts state={state} labels={labels} actions={actions} permission={permission} setPermission={setPermission} />}{state.tab === 'settings' && <Settings state={state} labels={labels} setState={setState} appUrl={appUrl} installProps={installProps} />}{state.tab === 'guides' && <Guides labels={labels} setTab={actions.setTab} />}{state.tab === 'detail' && <Detail item={selected} labels={labels} actions={actions} />}</main><BottomNav labels={labels} tab={state.tab} setTab={actions.setTab} /></div>;
+  return <div className="min-h-screen bg-slate-50 pb-24 text-slate-950 sm:pb-10"><Toast toast={state.toast} close={() => setState((s) => ({ ...s, toast: null }))} /><UpdateAvailableBanner show={Boolean(waitingWorker) && !updateDismissed} onUpdate={applyAppUpdate} onDismiss={() => setUpdateDismissed(true)} /><DeleteDialog item={deleteItem} labels={labels} cancel={actions.cancelDelete} confirm={actions.confirmDelete} /><Header labels={labels} actions={actions} /><main className="mx-auto max-w-6xl px-4 py-6"><Nav labels={labels} tab={state.tab} setTab={actions.setTab} />{state.tab === 'home' && <Home state={state} labels={labels} actions={actions} installProps={installProps} />}{state.tab === 'alerts' && <Alerts state={state} labels={labels} actions={actions} permission={permission} setPermission={setPermission} />}{state.tab === 'settings' && <Settings state={state} labels={labels} setState={setState} appUrl={appUrl} installProps={installProps} />}{state.tab === 'guides' && <Guides labels={labels} setTab={actions.setTab} />}{state.tab === 'detail' && <Detail item={selected} labels={labels} actions={actions} />}</main><BottomNav labels={labels} tab={state.tab} setTab={actions.setTab} /></div>;
 }
