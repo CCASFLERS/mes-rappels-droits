@@ -420,6 +420,13 @@ function initialState() { return { language: 'fr', onboarded: false, tab: 'home'
 function loadState() { try { const saved = localStorage.getItem(STORAGE_KEY); if (saved) { const parsed = JSON.parse(saved); return { ...initialState(), ...parsed, items: Array.isArray(parsed.items) ? parsed.items.map(normalizeItem) : [] }; } } catch {} return initialState(); }
 function upcomingAlerts(items) { return items.filter((item) => Boolean(item.nextDate)).flatMap((item) => { if (item.rule === 'france_travail') { const openingDate = franceTravailOpeningDate(item.nextDate); return [{ ...item, reminderDate: openingDate, offset: 'opening', label: 'Ouverture de l’actualisation' }, ...reminderOffsets(item.rule).map((offset) => ({ ...item, reminderDate: addDays(item.nextDate, offset), offset }))]; } return reminderOffsets(item.rule).map((offset) => ({ ...item, reminderDate: addDays(item.nextDate, offset), offset })); }).filter((r) => daysUntil(r.reminderDate) >= 0).sort((a, b) => parseDate(a.reminderDate) - parseDate(b.reminderDate)).slice(0, 12); }
 function notificationStatus() { if (typeof window === 'undefined' || !('Notification' in window)) return 'unsupported'; return window.Notification.permission; }
+const PUSH_CLIENT_ID_KEY = 'mes-rappels-droits-client-id-v1';
+const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || '';
+function pushSupported() { return typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window; }
+function getPushClientId() { try { let id = localStorage.getItem(PUSH_CLIENT_ID_KEY); if (!id) { id = `client-${Date.now()}-${Math.random().toString(16).slice(2)}`; localStorage.setItem(PUSH_CLIENT_ID_KEY, id); } return id; } catch { return `client-${Date.now()}`; } }
+function urlBase64ToUint8Array(base64String) { const padding = '='.repeat((4 - (base64String.length % 4)) % 4); const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/'); const rawData = window.atob(base64); const outputArray = new Uint8Array(rawData.length); for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i); return outputArray; }
+function remindersForPush(items) { return upcomingAlerts(items).map((r) => ({ catalogId: r.catalogId, title: r.title, cat: r.cat, icon: r.icon, reminderDate: r.reminderDate, nextDate: r.nextDate, offset: r.offset, label: r.label || '' })); }
+async function postJson(url, data) { const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }); if (!response.ok) throw new Error(`HTTP ${response.status}`); return response.json(); }
 function officialGuideUrlFor(catalogId, language) { const url = OFFICIAL_GUIDE_URLS[catalogId]; if (!url) return ''; const target = GOOGLE_TRANSLATE_LANG[language] || 'fr'; if (target === 'fr') return url; return `https://translate.google.com/translate?sl=fr&tl=${encodeURIComponent(target)}&u=${encodeURIComponent(url)}`; }
 function guideUiFor(language) { const map = {
   fr: { official: 'Source officielle', translated: 'Ouvrir traduit automatiquement', notice: 'Traduction automatique possible par Google. En cas de doute, vérifier avec le site officiel ou un accompagnant.', available: 'Guide officiel disponible.' },
@@ -474,7 +481,7 @@ function InstallPanel({ labels, deferredInstallPrompt, standalone, platform, onI
   const installHelpText = standalone ? labels.openFromHome : platform === 'ios' ? labels.installIosHelp : platform === 'android' ? labels.installAndroidHelp : labels.installUnavailable;
   const installButtonText = standalone ? labels.installed : canAutoInstall ? labels.installApp : platform === 'ios' ? 'Voir les étapes iPhone' : 'Voir comment installer';
   const notificationButtonText = permission === 'granted' ? labels.notificationsGrantedTitle : permission === 'denied' ? labels.notificationsDeniedTitle : permission === 'unsupported' ? labels.notificationsUnsupportedTitle : labels.activateNotifications;
-  return <Card><CardContent className="p-5"><h2 className="text-lg font-bold">📲 {labels.installTitle}</h2><p className="mt-1 text-slate-600">{standalone ? labels.installedText : labels.installIntro}</p><div className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm text-slate-700">{installHelpText}</div><div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2"><Button className="py-4" onClick={onInstall} disabled={standalone}>📲 {installButtonText}</Button><Button variant={permission === 'granted' ? 'success' : 'outline'} className="py-4" onClick={askNotifications}>🔔 {notificationButtonText}</Button></div><div className="mt-3 rounded-xl bg-white p-3 text-xs text-slate-500"><strong>{labels.notificationStepTitle} :</strong> {labels.notificationStepText}</div></CardContent></Card>;
+  return <Card><CardContent className="p-5"><h2 className="text-lg font-bold">📲 {labels.installTitle}</h2><p className="mt-1 text-slate-600">{standalone ? labels.installedText : labels.installIntro}</p><div className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm text-slate-700">{installHelpText}</div><div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2"><Button className="py-4" onClick={onInstall} disabled={standalone}>📲 {installButtonText}</Button><Button variant={permission === 'granted' ? 'success' : 'outline'} className="py-4" onClick={askNotifications}>🔔 {notificationButtonText}</Button></div><div className="mt-3 rounded-xl bg-white p-3 text-xs text-slate-500"><strong>{labels.notificationStepTitle} :</strong> {labels.notificationStepText} Rappels envoyés vers 09:00.</div></CardContent></Card>;
 }
 
 function Home({ state, labels, actions, installProps }) {
@@ -565,6 +572,8 @@ export default function App() {
     return () => navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
   }, []);
 
+  useEffect(() => { syncPushReminders(); }, [state.items, state.language, permission]);
+
   const selected = useMemo(() => state.items.find((i) => i.uid === selectedUid), [state.items, selectedUid]);
   const deleteItem = useMemo(() => state.items.find((i) => i.uid === deleteUid), [state.items, deleteUid]);
 
@@ -591,37 +600,69 @@ export default function App() {
   }
 
   async function askNotifications() {
-    const current = notificationStatus();
-    if (current === 'unsupported') {
+    if (!pushSupported()) {
       setPermission('unsupported');
       setState((s) => ({ ...s, toast: { title: labels.notificationsUnsupportedTitle, body: labels.notificationsUnsupportedText } }));
       return;
     }
+    if (!VAPID_PUBLIC_KEY) {
+      setState((s) => ({ ...s, toast: { title: 'Configuration notifications', body: 'La clé publique VAPID manque dans Vercel. Les notifications push ne peuvent pas encore être activées.' } }));
+      return;
+    }
+
+    const current = notificationStatus();
     if (current === 'denied') {
       setPermission('denied');
       setState((s) => ({ ...s, toast: { title: labels.notificationsDeniedTitle, body: labels.notificationsDeniedText } }));
       return;
     }
-    if (current === 'granted') {
-      setPermission('granted');
-      try { new window.Notification(labels.appTitle, { body: labels.notificationsGrantedText }); } catch {}
-      setState((s) => ({ ...s, toast: { title: labels.notificationsGrantedTitle, body: labels.notificationsGrantedText } }));
-      return;
-    }
+
     try {
-      const result = await window.Notification.requestPermission();
+      const result = current === 'granted' ? 'granted' : await window.Notification.requestPermission();
       setPermission(result);
-      if (result === 'granted') {
-        try { new window.Notification(labels.appTitle, { body: labels.notificationsGrantedText }); } catch {}
-        setState((s) => ({ ...s, toast: { title: labels.notificationsGrantedTitle, body: labels.notificationsGrantedText } }));
-      } else if (result === 'denied') {
-        setState((s) => ({ ...s, toast: { title: labels.notificationsDeniedTitle, body: labels.notificationsDeniedText } }));
-      } else {
+      if (result !== 'granted') {
         setState((s) => ({ ...s, toast: { title: labels.browserNotifications, body: labels.notificationsDefaultText } }));
+        return;
       }
-    } catch {
-      setPermission('unsupported');
-      setState((s) => ({ ...s, toast: { title: labels.notificationsUnsupportedTitle, body: labels.notificationsUnsupportedText } }));
+
+      const registration = await navigator.serviceWorker.ready;
+      let subscription = await registration.pushManager.getSubscription();
+      if (!subscription) {
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        });
+      }
+
+      await postJson('/api/subscribe', {
+        clientId: getPushClientId(),
+        language: state.language,
+        subscription: subscription.toJSON(),
+        reminders: remindersForPush(state.items),
+      });
+
+      try { new window.Notification(labels.appTitle, { body: `${labels.notificationsGrantedText} ${labels.nextAlerts} : 09:00.` }); } catch {}
+      setState((s) => ({ ...s, toast: { title: labels.notificationsGrantedTitle, body: `${labels.notificationsGrantedText} Rappels prévus vers 09:00.` } }));
+    } catch (error) {
+      console.error(error);
+      setState((s) => ({ ...s, toast: { title: labels.notificationsUnsupportedTitle, body: 'Impossible d’activer les notifications push pour le moment.' } }));
+    }
+  }
+
+  async function syncPushReminders() {
+    if (!pushSupported() || notificationStatus() !== 'granted') return;
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.getSubscription();
+      if (!subscription) return;
+      await postJson('/api/sync-reminders', {
+        clientId: getPushClientId(),
+        language: state.language,
+        subscription: subscription.toJSON(),
+        reminders: remindersForPush(state.items),
+      });
+    } catch (error) {
+      console.warn('Synchronisation push impossible', error);
     }
   }
 

@@ -5,8 +5,6 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL))
   );
-  // Ne pas activer automatiquement ici :
-  // l'application affichera "Nouvelle version disponible".
 });
 
 self.addEventListener('message', (event) => {
@@ -26,10 +24,44 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
+self.addEventListener('push', (event) => {
+  let data = {
+    title: 'Rappel de démarche',
+    body: 'Vous avez une démarche à vérifier aujourd’hui.',
+    url: '/',
+  };
+
+  try {
+    if (event.data) data = { ...data, ...event.data.json() };
+  } catch {}
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
+      data: { url: data.url || '/' },
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const targetUrl = event.notification.data && event.notification.data.url ? event.notification.data.url : '/';
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if ('focus' in client) return client.focus();
+      }
+      if (clients.openWindow) return clients.openWindow(targetUrl);
+      return null;
+    })
+  );
+});
+
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
-  // Pour les pages HTML : réseau d'abord, cache en secours.
   if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request)
@@ -45,7 +77,6 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Pour les fichiers JS/CSS/images : réseau d'abord, cache en secours.
   event.respondWith(
     fetch(event.request)
       .then((response) => {
