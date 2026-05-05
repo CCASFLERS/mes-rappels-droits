@@ -367,7 +367,7 @@ const CATALOG = [
   { id: 'css_sante', rule: 'css_sante', title: 'CSS / Santé', short: 'Renouvellement annuel', cat: 'Santé', icon: '🏥', timing: 'Droits CSS accordés pour 1 an. Renouvellement entre 4 et 2 mois avant la fin.' },
   { id: 'ame', rule: 'ame', title: 'AME', short: 'Renouvellement annuel', cat: 'Santé', icon: '🩺', timing: 'Renouvellement à déposer dans les 2 mois avant expiration.' },
   { id: 'logement_social', rule: 'logement_social', title: 'Logement social', short: 'Renouvellement annuel', cat: 'Logement', icon: '🏠', timing: 'Renouvellement annuel entre le 10e et le 12e mois.' },
-  { id: 'impots_revenus', rule: 'impots_revenus', title: 'Impôts — déclaration de revenus', short: 'Déclaration annuelle — lieu à renseigner', cat: 'Impôts', icon: '🧾', timing: 'La date limite dépend du département ou de la situation à l’étranger. Renseignez le lieu d’habitation, puis vérifiez la date affichée dans l’application impots.gouv.' },
+  { id: 'impots_revenus', rule: 'impots_revenus', title: 'Impôts — déclaration de revenus', short: 'Déclaration annuelle — lieu à renseigner', cat: 'Impôts', icon: '🧾', timing: 'La date limite est calculée automatiquement selon le département de résidence ou la situation à l’étranger. Dates intégrées pour la campagne 2026 : 21 mai, 28 mai ou 4 juin à 23h59.' },
   { id: 'mdph', rule: 'mdph_long', title: 'MDPH — dossier général', short: 'Renouvellement à anticiper', cat: 'Handicap', icon: '📁', timing: 'Renouvellement conseillé 6 mois avant la fin des droits.' },
   { id: 'aah_mdph', rule: 'mdph_long', title: 'AAH — renouvellement MDPH', short: 'Renouvellement à anticiper', cat: 'Handicap', icon: '♿', timing: 'Renouvellement AAH conseillé 6 mois avant la fin des droits.' },
   { id: 'rqth', rule: 'mdph_long', title: 'RQTH', short: 'Renouvellement à anticiper', cat: 'Handicap', icon: '🧩', timing: 'Renouvellement MDPH à anticiper avant l’échéance.' },
@@ -410,12 +410,77 @@ function reminderOffsets(rule) { if (rule === 'france_travail') return [-5, -1, 
 function franceTravailCurrentDeadline(from = todayISO()) { const d = parseDate(from) || parseDate(todayISO()); const deadline = new Date(d.getFullYear(), d.getMonth(), 15); if (d.getDate() > 15) deadline.setMonth(deadline.getMonth() + 1); return localISO(deadline); }
 function franceTravailNextDeadlineAfterDone(from = todayISO()) { return addMonths(franceTravailCurrentDeadline(from), 1); }
 function franceTravailOpeningDate(deadlineDate) { const deadline = parseDate(deadlineDate) || parseDate(franceTravailCurrentDeadline()); const opening = new Date(deadline.getFullYear(), deadline.getMonth() - 1, 1); const previousMonthIsFebruary = opening.getMonth() === 1; opening.setDate(previousMonthIsFebruary ? 26 : 28); return localISO(opening); }
+function impotsCampaignYear(from = todayISO()) {
+  const d = parseDate(from) || parseDate(todayISO());
+  const y = Math.max(2026, d.getFullYear());
+  const afterCampaign = d > new Date(y, 6, 15);
+  return afterCampaign ? y + 1 : y;
+}
+function impotsDeadlineDate(year, zone) {
+  if (zone === 1) return `${year}-05-21`;
+  if (zone === 2) return `${year}-05-28`;
+  return `${year}-06-04`;
+}
+function normalizeTaxDepartment(value) {
+  return String(value || '').trim().toUpperCase().replace(/\s+/g, '');
+}
+function impotsDeadlineForLocation(item, from = todayISO()) {
+  if (!item || item.rule !== 'impots_revenus') return '';
+  const year = impotsCampaignYear(from);
+
+  if (item.taxResidence === 'etranger') {
+    return impotsDeadlineDate(year, 1);
+  }
+
+  if (item.taxResidence !== 'france') return '';
+
+  const dept = normalizeTaxDepartment(item.taxDepartment);
+  if (!dept) return '';
+  if (dept === '2A' || dept === '2B') return impotsDeadlineDate(year, 2);
+
+  const number = Number.parseInt(dept, 10);
+  if (!Number.isFinite(number)) return '';
+  if (number >= 1 && number <= 19) return impotsDeadlineDate(year, 1);
+  if (number >= 20 && number <= 54) return impotsDeadlineDate(year, 2);
+  if (number >= 55) return impotsDeadlineDate(year, 3);
+
+  return '';
+}
+function withImpotsAutoDate(item) {
+  if (!item || item.rule !== 'impots_revenus') return item;
+  const deadline = impotsDeadlineForLocation(item);
+  return deadline ? { ...item, nextDate: deadline } : { ...item, nextDate: '' };
+}
 function nextAfterDone(item, from = todayISO()) { const rule = item.rule; if (rule === 'france_travail') return franceTravailNextDeadlineAfterDone(from); if (rule === 'caf_quarterly') return addMonths(from, 3); if (['css_sante', 'ame', 'logement_social', 'mdph_long', 'titre_sejour'].includes(rule)) return addMonths(from, 12); if (rule === 'custom') return item.nextDate || addMonths(from, 1); return addMonths(from, 1); }
-function nextDateAfterRecording(item) { if (item.rule === 'custom') return item.nextDate || todayISO(); if (item.rule === 'impots_revenus') return item.nextDate ? addMonths(item.nextDate, 12) : addMonths(todayISO(), 12); return nextAfterDone(item); }
-function impotsResidenceComplete(item) { if (item.rule !== 'impots_revenus') return true; if (item.taxResidence === 'etranger') return true; if (item.taxResidence === 'france' && String(item.taxDepartment || '').trim()) return true; return false; }
-function missingRequiredInfo(item) { if (!item) return true; if (needsDate(item) && !item.nextDate) return true; if (!impotsResidenceComplete(item)) return true; return false; }
-function suggestedDate(catalog, from = todayISO()) { if (catalog.rule === 'france_travail') return franceTravailCurrentDeadline(from); if (catalog.rule === 'caf_quarterly') return addMonths(from, 3); if (catalog.rule === 'titre_sejour' || catalog.rule === 'impots_revenus') return ''; if (catalog.rule === 'mdph_long') return addDays(from, 180); if (['css_sante', 'ame', 'logement_social'].includes(catalog.rule)) return addMonths(from, 12); return addDays(from, 30); }
-function needsDate(item) { return ['titre_sejour', 'css_sante', 'ame', 'logement_social', 'mdph_long', 'custom', 'impots_revenus'].includes(item.rule); }
+function nextDateAfterRecording(item) {
+  if (item.rule === 'custom') return item.nextDate || todayISO();
+  if (item.rule === 'impots_revenus') {
+    const currentDeadline = impotsDeadlineForLocation(item) || item.nextDate || todayISO();
+    return addMonths(currentDeadline, 12);
+  }
+  return nextAfterDone(item);
+}
+function impotsResidenceComplete(item) {
+  if (item.rule !== 'impots_revenus') return true;
+  return Boolean(impotsDeadlineForLocation(item));
+}
+function missingRequiredInfo(item) {
+  if (!item) return true;
+  if (item.rule === 'impots_revenus') return !impotsDeadlineForLocation(item);
+  if (needsDate(item) && !item.nextDate) return true;
+  return false;
+}
+function suggestedDate(catalog, from = todayISO()) {
+  if (catalog.rule === 'france_travail') return franceTravailCurrentDeadline(from);
+  if (catalog.rule === 'caf_quarterly') return addMonths(from, 3);
+  if (catalog.rule === 'titre_sejour' || catalog.rule === 'impots_revenus') return '';
+  if (catalog.rule === 'mdph_long') return addDays(from, 180);
+  if (['css_sante', 'ame', 'logement_social'].includes(catalog.rule)) return addMonths(from, 12);
+  return addDays(from, 30);
+}
+function needsDate(item) {
+  return ['titre_sejour', 'css_sante', 'ame', 'logement_social', 'mdph_long', 'custom'].includes(item.rule);
+}
 function showAsTodo(item) {
   if (missingRequiredInfo(item)) return true;
 
@@ -428,7 +493,7 @@ function showAsTodo(item) {
   return !item.completedOnce || statusOf(item.nextDate) !== 'ok';
 }
 function makeItem(catalogId) { const c = CATALOG.find((x) => x.id === catalogId) || CATALOG[0]; return { uid: `${c.id}-${Date.now()}-${Math.random().toString(16).slice(2)}`, catalogId: c.id, rule: c.rule, title: c.title, short: c.short, cat: c.cat, icon: c.icon, nextDate: suggestedDate(c), lastAction: '', note: '', notifications: true, completedOnce: false, taxResidence: '', taxDepartment: '' }; }
-function normalizeItem(item) { const c = catalogFor(item); return { ...makeItem(c.id), ...item, rule: item.rule || c.rule, title: item.title || c.title, short: item.short || c.short, cat: item.cat || c.cat, icon: item.icon || c.icon }; }
+function normalizeItem(item) { const c = catalogFor(item); return withImpotsAutoDate({ ...makeItem(c.id), ...item, rule: item.rule || c.rule, title: item.title || c.title, short: item.short || c.short, cat: item.cat || c.cat, icon: item.icon || c.icon }); }
 function initialState() { return { language: 'fr', onboarded: false, tab: 'home', toast: null, items: [] }; }
 function loadState() { try { const saved = localStorage.getItem(STORAGE_KEY); if (saved) { const parsed = JSON.parse(saved); return { ...initialState(), ...parsed, items: Array.isArray(parsed.items) ? parsed.items.map(normalizeItem) : [] }; } } catch {} return initialState(); }
 function upcomingAlerts(items) { return items.filter((item) => Boolean(item.nextDate)).flatMap((item) => { if (item.rule === 'france_travail') { const openingDate = franceTravailOpeningDate(item.nextDate); return [{ ...item, reminderDate: openingDate, offset: 'opening', label: 'Ouverture de l’actualisation' }, ...reminderOffsets(item.rule).map((offset) => ({ ...item, reminderDate: addDays(item.nextDate, offset), offset }))]; } return reminderOffsets(item.rule).map((offset) => ({ ...item, reminderDate: addDays(item.nextDate, offset), offset })); }).filter((r) => daysUntil(r.reminderDate) >= 0).sort((a, b) => parseDate(a.reminderDate) - parseDate(b.reminderDate)).slice(0, 12); }
@@ -470,14 +535,14 @@ function repairUiFor(language) { const map = {
 }; return map[language] || map.fr; }
 
 function taxUiFor(language) { const map = {
-  fr: { title: 'Lieu d’habitation pour les impôts', help: 'La date limite dépend du département ou de la situation à l’étranger.', residence: 'Situation', choose: 'Choisir', france: 'J’habite en France', abroad: 'Je réside à l’étranger', department: 'Département de résidence', departmentPlaceholder: 'Exemple : 61', abroadHelp: 'Pour une résidence à l’étranger, vérifiez la date affichée par impots.gouv.', dateHelp: 'Renseignez la date limite indiquée par impots.gouv pour créer le rappel.' },
-  en: { title: 'Tax residence', help: 'The deadline depends on the department or foreign residence situation.', residence: 'Situation', choose: 'Choose', france: 'I live in France', abroad: 'I live abroad', department: 'Department of residence', departmentPlaceholder: 'Example: 61', abroadHelp: 'For residence abroad, check the date displayed by impots.gouv.', dateHelp: 'Enter the deadline shown by impots.gouv to create the reminder.' },
-  es: { title: 'Lugar de residencia para impuestos', help: 'La fecha límite depende del departamento o de la residencia en el extranjero.', residence: 'Situación', choose: 'Elegir', france: 'Vivo en Francia', abroad: 'Resido en el extranjero', department: 'Departamento de residencia', departmentPlaceholder: 'Ejemplo: 61', abroadHelp: 'Si reside en el extranjero, verifique la fecha indicada por impots.gouv.', dateHelp: 'Indique la fecha límite mostrada por impots.gouv para crear el recordatorio.' },
-  ru: { title: 'Место проживания для налогов', help: 'Срок зависит от департамента или проживания за границей.', residence: 'Ситуация', choose: 'Выбрать', france: 'Я живу во Франции', abroad: 'Я живу за границей', department: 'Департамент проживания', departmentPlaceholder: 'Например: 61', abroadHelp: 'Для проживания за границей проверьте дату на impots.gouv.', dateHelp: 'Укажите срок, показанный на impots.gouv, чтобы создать напоминание.' },
-  ar: { title: 'مكان الإقامة للضرائب', help: 'تاريخ الموعد النهائي يعتمد على القسم أو الإقامة في الخارج.', residence: 'الوضع', choose: 'اختيار', france: 'أعيش في فرنسا', abroad: 'أقيم في الخارج', department: 'رقم القسم', departmentPlaceholder: 'مثال: 61', abroadHelp: 'إذا كنت مقيماً في الخارج، تحقق من التاريخ الظاهر في impots.gouv.', dateHelp: 'أدخل التاريخ النهائي الظاهر في impots.gouv لإنشاء التذكير.' },
-  tr: { title: 'Vergi için ikamet yeri', help: 'Son tarih departmana veya yurt dışı ikamet durumuna bağlıdır.', residence: 'Durum', choose: 'Seç', france: 'Fransa’da yaşıyorum', abroad: 'Yurt dışında yaşıyorum', department: 'İkamet departmanı', departmentPlaceholder: 'Örnek: 61', abroadHelp: 'Yurt dışı ikamet için impots.gouv’da gösterilen tarihi kontrol edin.', dateHelp: 'Hatırlatma oluşturmak için impots.gouv’da gösterilen son tarihi girin.' },
-  uk: { title: 'Місце проживання для податків', help: 'Кінцева дата залежить від департаменту або проживання за кордоном.', residence: 'Ситуація', choose: 'Вибрати', france: 'Я живу у Франції', abroad: 'Я живу за кордоном', department: 'Департамент проживання', departmentPlaceholder: 'Наприклад: 61', abroadHelp: 'Для проживання за кордоном перевірте дату на impots.gouv.', dateHelp: 'Введіть кінцеву дату, показану на impots.gouv, щоб створити нагадування.' },
-  so: { title: 'Meesha deggenaanshaha canshuurta', help: 'Taariikhda kama dambaysta ah waxay ku xiran tahay deegaanka ama haddii aad dibadda deggen tahay.', residence: 'Xaaladda', choose: 'Dooro', france: 'Waxaan deggenahay Faransiiska', abroad: 'Waxaan deggenahay dibadda', department: 'Waaxda deegaanka', departmentPlaceholder: 'Tusaale: 61', abroadHelp: 'Haddii aad dibadda deggen tahay, hubi taariikhda ku qoran impots.gouv.', dateHelp: 'Geli taariikhda kama dambaysta ah ee impots.gouv si loo abuuro xusuusin.' }
+  fr: { title: 'Lieu d’habitation pour les impôts', help: 'La date limite dépend du département ou de la situation à l’étranger.', residence: 'Situation', choose: 'Choisir', france: 'J’habite en France', abroad: 'Je réside à l’étranger', department: 'Département de résidence', departmentPlaceholder: 'Exemple : 61', abroadHelp: 'Pour une résidence à l’étranger, vérifiez la date affichée par impots.gouv.', dateHelp: 'La date de rappel est calculée automatiquement à partir du lieu renseigné.' },
+  en: { title: 'Tax residence', help: 'The deadline depends on the department or foreign residence situation.', residence: 'Situation', choose: 'Choose', france: 'I live in France', abroad: 'I live abroad', department: 'Department of residence', departmentPlaceholder: 'Example: 61', abroadHelp: 'For residence abroad, check the date displayed by impots.gouv.', dateHelp: 'The reminder date is calculated automatically from the selected residence.' },
+  es: { title: 'Lugar de residencia para impuestos', help: 'La fecha límite depende del departamento o de la residencia en el extranjero.', residence: 'Situación', choose: 'Elegir', france: 'Vivo en Francia', abroad: 'Resido en el extranjero', department: 'Departamento de residencia', departmentPlaceholder: 'Ejemplo: 61', abroadHelp: 'Si reside en el extranjero, verifique la fecha indicada por impots.gouv.', dateHelp: 'La fecha del recordatorio se calcula automáticamente según el lugar indicado.' },
+  ru: { title: 'Место проживания для налогов', help: 'Срок зависит от департамента или проживания за границей.', residence: 'Ситуация', choose: 'Выбрать', france: 'Я живу во Франции', abroad: 'Я живу за границей', department: 'Департамент проживания', departmentPlaceholder: 'Например: 61', abroadHelp: 'Для проживания за границей проверьте дату на impots.gouv.', dateHelp: 'Дата напоминания рассчитывается автоматически по месту проживания.' },
+  ar: { title: 'مكان الإقامة للضرائب', help: 'تاريخ الموعد النهائي يعتمد على القسم أو الإقامة في الخارج.', residence: 'الوضع', choose: 'اختيار', france: 'أعيش في فرنسا', abroad: 'أقيم في الخارج', department: 'رقم القسم', departmentPlaceholder: 'مثال: 61', abroadHelp: 'إذا كنت مقيماً في الخارج، تحقق من التاريخ الظاهر في impots.gouv.', dateHelp: 'يتم حساب تاريخ التذكير تلقائياً حسب مكان الإقامة.' },
+  tr: { title: 'Vergi için ikamet yeri', help: 'Son tarih departmana veya yurt dışı ikamet durumuna bağlıdır.', residence: 'Durum', choose: 'Seç', france: 'Fransa’da yaşıyorum', abroad: 'Yurt dışında yaşıyorum', department: 'İkamet departmanı', departmentPlaceholder: 'Örnek: 61', abroadHelp: 'Yurt dışı ikamet için impots.gouv’da gösterilen tarihi kontrol edin.', dateHelp: 'Hatırlatma tarihi seçilen ikamet yerine göre otomatik hesaplanır.' },
+  uk: { title: 'Місце проживання для податків', help: 'Кінцева дата залежить від департаменту або проживання за кордоном.', residence: 'Ситуація', choose: 'Вибрати', france: 'Я живу у Франції', abroad: 'Я живу за кордоном', department: 'Департамент проживання', departmentPlaceholder: 'Наприклад: 61', abroadHelp: 'Для проживання за кордоном перевірте дату на impots.gouv.', dateHelp: 'Дата нагадування розраховується автоматично за місцем проживання.' },
+  so: { title: 'Meesha deggenaanshaha canshuurta', help: 'Taariikhda kama dambaysta ah waxay ku xiran tahay deegaanka ama haddii aad dibadda deggen tahay.', residence: 'Xaaladda', choose: 'Dooro', france: 'Waxaan deggenahay Faransiiska', abroad: 'Waxaan deggenahay dibadda', department: 'Waaxda deegaanka', departmentPlaceholder: 'Tusaale: 61', abroadHelp: 'Haddii aad dibadda deggen tahay, hubi taariikhda ku qoran impots.gouv.', dateHelp: 'Taariikhda xusuusinta si otomaatig ah ayaa loo xisaabiyaa iyadoo lagu saleynayo meesha la doortay.' }
 }; if (language === 'fa' || language === 'dari' || language === 'ps') return map.ar; return map[language] || map.fr; }
 
 function isStandaloneMode() { if (typeof window === 'undefined') return false; return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true; }
@@ -561,8 +626,19 @@ function Detail({ item, labels, actions, language }) {
   const c = catalogFor(draft);
   const tax = taxUiFor(language);
   const isTax = draft.rule === 'impots_revenus';
+  const taxDeadline = isTax ? impotsDeadlineForLocation(draft) : '';
 
-  return <div className="space-y-6"><Button variant="ghost" onClick={() => actions.setTab('home')}>← {labels.back}</Button><Card className="rounded-3xl"><CardContent className="p-6 sm:p-8"><div className="flex items-start gap-4"><div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-3xl bg-slate-100 text-4xl">{draft.icon}</div><div><h1 className="text-3xl font-bold">{draft.title}</h1><p className="mt-1 text-slate-600">{draft.short}</p></div></div><div className="mt-6 rounded-2xl bg-slate-50 p-4 text-sm text-slate-700"><div className="font-semibold">{labels.ruleApplied}</div><div className="mt-1">{c.timing}</div></div><div className="mt-6 space-y-4">{isTax && <div className="rounded-2xl border border-slate-200 bg-white p-4"><h3 className="font-bold text-slate-900">{tax.title}</h3><p className="mt-1 text-sm text-slate-600">{tax.help}</p><label className="mt-4 block space-y-2"><span className="text-sm font-medium text-slate-700">{tax.residence}</span><select value={draft.taxResidence || ''} onChange={(e) => setDraft({ ...draft, taxResidence: e.target.value, taxDepartment: e.target.value === 'france' ? draft.taxDepartment : '' })} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3"><option value="">{tax.choose}</option><option value="france">{tax.france}</option><option value="etranger">{tax.abroad}</option></select></label>{draft.taxResidence === 'france' && <label className="mt-4 block space-y-2"><span className="text-sm font-medium text-slate-700">{tax.department}</span><input value={draft.taxDepartment || ''} inputMode="numeric" maxLength={3} placeholder={tax.departmentPlaceholder} onChange={(e) => setDraft({ ...draft, taxDepartment: e.target.value.replace(/[^0-9ABab]/g, '').toUpperCase() })} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3" /></label>}{draft.taxResidence === 'etranger' && <div className="mt-4 rounded-xl bg-slate-50 p-3 text-sm text-slate-600">{tax.abroadHelp}</div>}</div>}{needsDate(draft) ? <label className="space-y-2 block"><span className="text-sm font-medium text-slate-700">{labels.dateToEnter}</span><input type="date" value={draft.nextDate} onChange={(e) => setDraft({ ...draft, nextDate: e.target.value })} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3" />{isTax && <p className="text-xs text-slate-500">{tax.dateHelp}</p>}</label> : <div className="rounded-2xl bg-white p-4 text-sm text-slate-700">{labels.dateAutoAfterDone}</div>}<label className="flex items-center gap-3 rounded-xl border border-slate-300 bg-white px-3 py-3"><input type="checkbox" checked={draft.notifications !== false} onChange={(e) => setDraft({ ...draft, notifications: e.target.checked })} /><span className="text-sm font-medium text-slate-700">{labels.reminderEnabled}</span></label><label className="space-y-2 block"><span className="text-sm font-medium text-slate-700">{labels.note}</span><textarea value={draft.note || ''} onChange={(e) => setDraft({ ...draft, note: e.target.value })} rows={4} className="w-full resize-none rounded-xl border border-slate-300 bg-white px-3 py-3" /></label></div><div className="mt-6 grid grid-cols-1 gap-2 sm:grid-cols-3"><Button variant="default" className="py-6" onClick={() => actions.done(draft.uid, draft)}>✅ {labels.doneButton}</Button><Button className="py-6" onClick={() => actions.save(draft)}>💾 {labels.save}</Button><Button variant="outline" className="py-6" onClick={() => actions.askDelete(draft.uid)}>🗑 {labels.delete}</Button></div></CardContent></Card></div>;
+  function updateTaxResidence(value) {
+    const nextDraft = { ...draft, taxResidence: value, taxDepartment: value === 'france' ? draft.taxDepartment : '' };
+    setDraft(withImpotsAutoDate(nextDraft));
+  }
+
+  function updateTaxDepartment(value) {
+    const nextDraft = { ...draft, taxDepartment: value.replace(/[^0-9ABab]/g, '').toUpperCase() };
+    setDraft(withImpotsAutoDate(nextDraft));
+  }
+
+  return <div className="space-y-6"><Button variant="ghost" onClick={() => actions.setTab('home')}>← {labels.back}</Button><Card className="rounded-3xl"><CardContent className="p-6 sm:p-8"><div className="flex items-start gap-4"><div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-3xl bg-slate-100 text-4xl">{draft.icon}</div><div><h1 className="text-3xl font-bold">{draft.title}</h1><p className="mt-1 text-slate-600">{draft.short}</p></div></div><div className="mt-6 rounded-2xl bg-slate-50 p-4 text-sm text-slate-700"><div className="font-semibold">{labels.ruleApplied}</div><div className="mt-1">{c.timing}</div></div><div className="mt-6 space-y-4">{isTax && <div className="rounded-2xl border border-slate-200 bg-white p-4"><h3 className="font-bold text-slate-900">{tax.title}</h3><p className="mt-1 text-sm text-slate-600">{tax.help}</p><label className="mt-4 block space-y-2"><span className="text-sm font-medium text-slate-700">{tax.residence}</span><select value={draft.taxResidence || ''} onChange={(e) => updateTaxResidence(e.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3"><option value="">{tax.choose}</option><option value="france">{tax.france}</option><option value="etranger">{tax.abroad}</option></select></label>{draft.taxResidence === 'france' && <label className="mt-4 block space-y-2"><span className="text-sm font-medium text-slate-700">{tax.department}</span><input value={draft.taxDepartment || ''} inputMode="text" maxLength={3} placeholder={tax.departmentPlaceholder} onChange={(e) => updateTaxDepartment(e.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3" /></label>}{draft.taxResidence === 'etranger' && <div className="mt-4 rounded-xl bg-slate-50 p-3 text-sm text-slate-600">{tax.abroadHelp}</div>}<div className="mt-4 rounded-xl bg-blue-50 p-3 text-sm text-blue-950"><div className="font-semibold">{labels.nextReminder}</div><div className="mt-1">{taxDeadline ? formatDate(taxDeadline) : labels.dateToEnter}</div><div className="mt-1 text-xs opacity-80">{tax.dateHelp}</div></div></div>}{!isTax && (needsDate(draft) ? <label className="space-y-2 block"><span className="text-sm font-medium text-slate-700">{labels.dateToEnter}</span><input type="date" value={draft.nextDate} onChange={(e) => setDraft({ ...draft, nextDate: e.target.value })} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3" /></label> : <div className="rounded-2xl bg-white p-4 text-sm text-slate-700">{labels.dateAutoAfterDone}</div>)}<label className="flex items-center gap-3 rounded-xl border border-slate-300 bg-white px-3 py-3"><input type="checkbox" checked={draft.notifications !== false} onChange={(e) => setDraft({ ...draft, notifications: e.target.checked })} /><span className="text-sm font-medium text-slate-700">{labels.reminderEnabled}</span></label><label className="space-y-2 block"><span className="text-sm font-medium text-slate-700">{labels.note}</span><textarea value={draft.note || ''} onChange={(e) => setDraft({ ...draft, note: e.target.value })} rows={4} className="w-full resize-none rounded-xl border border-slate-300 bg-white px-3 py-3" /></label></div><div className="mt-6 grid grid-cols-1 gap-2 sm:grid-cols-3"><Button variant="default" className="py-6" onClick={() => actions.done(draft.uid, withImpotsAutoDate(draft))}>✅ {labels.doneButton}</Button><Button className="py-6" onClick={() => actions.save(withImpotsAutoDate(draft))}>💾 {labels.save}</Button><Button variant="outline" className="py-6" onClick={() => actions.askDelete(draft.uid)}>🗑 {labels.delete}</Button></div></CardContent></Card></div>;
 }
 
 export default function App() {
