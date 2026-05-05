@@ -413,7 +413,15 @@ function franceTravailOpeningDate(deadlineDate) { const deadline = parseDate(dea
 function nextAfterDone(item, from = todayISO()) { const rule = item.rule; if (rule === 'france_travail') return franceTravailNextDeadlineAfterDone(from); if (rule === 'caf_quarterly') return addMonths(from, 3); if (['css_sante', 'ame', 'logement_social', 'mdph_long', 'titre_sejour'].includes(rule)) return addMonths(from, 12); if (rule === 'custom') return item.nextDate || addMonths(from, 1); return addMonths(from, 1); }
 function suggestedDate(catalog, from = todayISO()) { if (catalog.rule === 'france_travail') return franceTravailCurrentDeadline(from); if (catalog.rule === 'caf_quarterly') return addMonths(from, 3); if (catalog.rule === 'titre_sejour') return ''; if (catalog.rule === 'mdph_long') return addDays(from, 180); if (['css_sante', 'ame', 'logement_social'].includes(catalog.rule)) return addMonths(from, 12); return addDays(from, 30); }
 function needsDate(item) { return ['titre_sejour', 'css_sante', 'ame', 'logement_social', 'mdph_long', 'custom'].includes(item.rule); }
-function showAsTodo(item) { return !item.completedOnce || statusOf(item.nextDate) !== 'ok'; }
+function showAsTodo(item) {
+  // Les rappels personnalisés sont des rappels ponctuels :
+  // une fois enregistrés, ils ne doivent pas rester dans “À faire maintenant”.
+  if (item.rule === 'custom' && item.completedOnce) return false;
+
+  // Les autres démarches récurrentes réapparaissent automatiquement
+  // quand la prochaine échéance approche.
+  return !item.completedOnce || statusOf(item.nextDate) !== 'ok';
+}
 function makeItem(catalogId) { const c = CATALOG.find((x) => x.id === catalogId) || CATALOG[0]; return { uid: `${c.id}-${Date.now()}-${Math.random().toString(16).slice(2)}`, catalogId: c.id, rule: c.rule, title: c.title, short: c.short, cat: c.cat, icon: c.icon, nextDate: suggestedDate(c), lastAction: '', note: '', notifications: true, completedOnce: false }; }
 function normalizeItem(item) { const c = catalogFor(item); return { ...makeItem(c.id), ...item, rule: item.rule || c.rule, title: item.title || c.title, short: item.short || c.short, cat: item.cat || c.cat, icon: item.icon || c.icon }; }
 function initialState() { return { language: 'fr', onboarded: false, tab: 'home', toast: null, items: [] }; }
@@ -725,7 +733,7 @@ export default function App() {
         if (i.uid !== uid) return i;
         const merged = normalizeItem({ ...i, ...(draft || {}) });
         return { ...merged, completedOnce: true, lastAction: todayISO(), nextDate: nextAfterDone(merged) };
-      }), toast: { title: '✅', body: labels.doneButton } }));
+      }), toast: { title: '✅', body: labels.saved } }));
     },
     edit: (item) => { setSelectedUid(item.uid); setState((s) => ({ ...s, tab: 'detail' })); },
     guide: (item) => { setSelectedGuideId(item.catalogId); setState((s) => ({ ...s, tab: 'guides' })); },
