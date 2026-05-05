@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mes-rappels-droits-v11';
+const CACHE_NAME = 'mes-rappels-droits-v12';
 const APP_SHELL = ['/', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png'];
 
 self.addEventListener('install', (event) => {
@@ -25,64 +25,35 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('push', (event) => {
-  let payload = {
-    title: 'Mes rappels de droits',
-    body: 'Un rappel est prévu aujourd’hui.',
-    url: '/'
+  let data = {
+    title: 'Rappel de démarche',
+    body: 'Vous avez une démarche à vérifier aujourd’hui.',
+    url: '/',
   };
 
   try {
-    if (event.data) {
-      payload = {
-        ...payload,
-        ...event.data.json()
-      };
-    }
-  } catch {
-    try {
-      payload.body = event.data ? event.data.text() : payload.body;
-    } catch {}
-  }
-
-  const options = {
-    body: payload.body,
-    icon: '/icon-192.png',
-    badge: '/icon-192.png',
-    data: {
-      url: payload.url || '/'
-    },
-    tag: payload.tag || 'rappel-droits',
-    renotify: true
-  };
+    if (event.data) data = { ...data, ...event.data.json() };
+  } catch {}
 
   event.waitUntil(
-    self.registration.showNotification(payload.title, options)
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
+      data: { url: data.url || '/' },
+    })
   );
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-
-  const urlToOpen =
-    event.notification &&
-    event.notification.data &&
-    event.notification.data.url
-      ? event.notification.data.url
-      : '/';
-
+  const targetUrl = event.notification.data && event.notification.data.url ? event.notification.data.url : '/';
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {
-        if ('focus' in client) {
-          client.navigate(urlToOpen);
-          return client.focus();
-        }
+        if ('focus' in client) return client.focus();
       }
-
-      if (clients.openWindow) {
-        return clients.openWindow(urlToOpen);
-      }
-
+      if (clients.openWindow) return clients.openWindow(targetUrl);
       return null;
     })
   );
