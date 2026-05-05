@@ -421,6 +421,12 @@ function impotsDeadlineDate(year, zone) {
   if (zone === 2) return `${year}-05-28`;
   return `${year}-06-04`;
 }
+function impotsReminderStartDate(year) {
+  // Les dates officielles changent chaque année.
+  // Pour l'année suivante, on ne met pas la date limite comme premier rappel :
+  // on relance la personne dès mi-avril pour vérifier le calendrier officiel.
+  return `${year}-04-15`;
+}
 function normalizeTaxDepartment(value) {
   return String(value || '').trim().toUpperCase().replace(/\s+/g, '');
 }
@@ -446,17 +452,43 @@ function impotsDeadlineForLocation(item, from = todayISO()) {
 
   return '';
 }
+function impotsFirstReminderForLocation(item, from = todayISO()) {
+  const deadline = impotsDeadlineForLocation(item, from);
+  if (!deadline) return '';
+
+  const deadlineDate = parseDate(deadline);
+  const today = parseDate(from) || parseDate(todayISO());
+  if (!deadlineDate || !today) return deadline;
+
+  const year = deadlineDate.getFullYear();
+  const start = impotsReminderStartDate(year);
+  const startDate = parseDate(start);
+
+  // Avant l'ouverture de la campagne : premier rappel à mi-avril.
+  if (startDate && today < startDate) return start;
+
+  // Campagne déjà ouverte, mais date limite pas encore passée : rappel immédiat.
+  if (today <= deadlineDate) return todayISO();
+
+  // Campagne terminée : on prépare la campagne suivante, dès mi-avril.
+  return impotsReminderStartDate(year + 1);
+}
+function impotsNextReminderAfterRecording(item, from = todayISO()) {
+  const deadline = impotsDeadlineForLocation(item, from) || item.nextDate || todayISO();
+  const deadlineDate = parseDate(deadline);
+  const year = deadlineDate ? deadlineDate.getFullYear() + 1 : (parseDate(from) || new Date()).getFullYear() + 1;
+  return impotsReminderStartDate(year);
+}
 function withImpotsAutoDate(item) {
   if (!item || item.rule !== 'impots_revenus') return item;
-  const deadline = impotsDeadlineForLocation(item);
-  return deadline ? { ...item, nextDate: deadline } : { ...item, nextDate: '' };
+  const firstReminder = impotsFirstReminderForLocation(item);
+  return firstReminder ? { ...item, nextDate: firstReminder } : { ...item, nextDate: '' };
 }
 function nextAfterDone(item, from = todayISO()) { const rule = item.rule; if (rule === 'france_travail') return franceTravailNextDeadlineAfterDone(from); if (rule === 'caf_quarterly') return addMonths(from, 3); if (['css_sante', 'ame', 'logement_social', 'mdph_long', 'titre_sejour'].includes(rule)) return addMonths(from, 12); if (rule === 'custom') return item.nextDate || addMonths(from, 1); return addMonths(from, 1); }
 function nextDateAfterRecording(item) {
   if (item.rule === 'custom') return item.nextDate || todayISO();
   if (item.rule === 'impots_revenus') {
-    const currentDeadline = impotsDeadlineForLocation(item) || item.nextDate || todayISO();
-    return addMonths(currentDeadline, 12);
+    return impotsNextReminderAfterRecording(item);
   }
   return nextAfterDone(item);
 }
