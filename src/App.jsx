@@ -579,17 +579,17 @@ function taxUiFor(language) { const map = {
 
 
 function calendarUiFor(language) { const map = {
-  fr: { shortLabel: 'Agenda', title: 'Ajouter à l’agenda', intro: 'Choisissez comment ajouter ce rappel dans le calendrier du téléphone.', google: 'Google Agenda', ics: 'iPhone / autre agenda', close: 'Fermer', eventPrefix: 'Rappel —', description: 'Rappel créé depuis Mes rappels de droits.', noDate: 'Aucune date de rappel n’est encore renseignée.' },
-  en: { shortLabel: 'Calendar', title: 'Add to calendar', intro: 'Choose how to add this reminder to the phone calendar.', google: 'Google Calendar', ics: 'iPhone / other calendar', close: 'Close', eventPrefix: 'Reminder —', description: 'Reminder created from My rights reminders.', noDate: 'No reminder date has been set yet.' },
-  es: { shortLabel: 'Agenda', title: 'Añadir al calendario', intro: 'Elija cómo añadir este recordatorio al calendario del teléfono.', google: 'Google Calendar', ics: 'iPhone / otro calendario', close: 'Cerrar', eventPrefix: 'Recordatorio —', description: 'Recordatorio creado desde Mis recordatorios de derechos.', noDate: 'Todavía no se ha indicado una fecha de recordatorio.' },
-  ru: { shortLabel: 'Календарь', title: 'Добавить в календарь', intro: 'Выберите, как добавить это напоминание в календарь телефона.', google: 'Google Календарь', ics: 'iPhone / другой календарь', close: 'Закрыть', eventPrefix: 'Напоминание —', description: 'Напоминание создано в приложении Мои напоминания о правах.', noDate: 'Дата напоминания ещё не указана.' },
-  uk: { shortLabel: 'Календар', title: 'Додати до календаря', intro: 'Виберіть, як додати це нагадування до календаря телефону.', google: 'Google Календар', ics: 'iPhone / інший календар', close: 'Закрити', eventPrefix: 'Нагадування —', description: 'Нагадування створено з застосунку Мої нагадування про права.', noDate: 'Дата нагадування ще не вказана.' },
-  ar: { shortLabel: 'التقويم', title: 'إضافة إلى التقويم', intro: 'اختر طريقة إضافة هذا التذكير إلى تقويم الهاتف.', google: 'تقويم Google', ics: 'iPhone / تقويم آخر', close: 'إغلاق', eventPrefix: 'تذكير —', description: 'تم إنشاء التذكير من تطبيق تذكيراتي بالحقوق.', noDate: 'لم يتم تحديد تاريخ التذكير بعد.' },
+  fr: { shortLabel: 'Agenda', title: 'Ajouter à l’agenda', intro: 'Choisissez comment ajouter ce prochain rappel dans le calendrier du téléphone.', google: 'Google Agenda', ics: 'iPhone / autre agenda', close: 'Pas maintenant', eventPrefix: 'Rappel —', description: 'Rappel créé depuis Mes rappels de droits.', noDate: 'Aucune date de rappel n’est encore renseignée.' },
+  en: { shortLabel: 'Calendar', title: 'Add to calendar', intro: 'Choose how to add this next reminder to the phone calendar.', google: 'Google Calendar', ics: 'iPhone / other calendar', close: 'Not now', eventPrefix: 'Reminder —', description: 'Reminder created from My rights reminders.', noDate: 'No reminder date has been set yet.' },
+  es: { shortLabel: 'Agenda', title: 'Añadir al calendario', intro: 'Elija cómo añadir este próximo recordatorio al calendario del teléfono.', google: 'Google Calendar', ics: 'iPhone / otro calendario', close: 'Ahora no', eventPrefix: 'Recordatorio —', description: 'Recordatorio creado desde Mis recordatorios de derechos.', noDate: 'Todavía no se ha indicado una fecha de recordatorio.' },
+  ru: { shortLabel: 'Календарь', title: 'Добавить в календарь', intro: 'Выберите, как добавить это напоминание в календарь телефона.', google: 'Google Календарь', ics: 'iPhone / другой календарь', close: 'Не сейчас', eventPrefix: 'Напоминание —', description: 'Напоминание создано в приложении Мои напоминания о правах.', noDate: 'Дата напоминания ещё не указана.' },
+  uk: { shortLabel: 'Календар', title: 'Додати до календаря', intro: 'Виберіть, як додати це нагадування до календаря телефону.', google: 'Google Календар', ics: 'iPhone / інший календар', close: 'Не зараз', eventPrefix: 'Нагадування —', description: 'Нагадування створено з застосунку Мої нагадування про права.', noDate: 'Дата нагадування ще не вказана.' },
+  ar: { shortLabel: 'التقويم', title: 'إضافة إلى التقويم', intro: 'اختر طريقة إضافة هذا التذكير إلى تقويم الهاتف.', google: 'تقويم Google', ics: 'iPhone / تقويم آخر', close: 'ليس الآن', eventPrefix: 'تذكير —', description: 'تم إنشاء التذكير من تطبيق تذكيراتي بالحقوق.', noDate: 'لم يتم تحديد تاريخ التذكير بعد.' },
   fa: { shortLabel: 'تقویم', title: 'افزودن به تقویم', intro: 'روش افزودن این یادآوری به تقویم تلفن را انتخاب کنید.', google: 'تقویم Google', ics: 'iPhone / تقویم دیگر', close: 'بستن', eventPrefix: 'یادآوری —', description: 'یادآوری از برنامه یادآوری حقوق من ایجاد شد.', noDate: 'هنوز تاریخ یادآوری مشخص نشده است.' },
   dari: { shortLabel: 'تقویم', title: 'افزودن به تقویم', intro: 'روش افزودن این یادآوری به تقویم تلفن را انتخاب کنید.', google: 'تقویم Google', ics: 'iPhone / تقویم دیگر', close: 'بستن', eventPrefix: 'یادآوری —', description: 'یادآوری از برنامه یادآوری حقوق من ایجاد شد.', noDate: 'هنوز تاریخ یادآوری مشخص نشده است.' },
   ps: { shortLabel: 'کليزه', title: 'کليزې ته زياتول', intro: 'دا یادونه د تلیفون کليزې ته د زياتولو طریقه وټاکئ.', google: 'Google Calendar', ics: 'iPhone / بله کليزه', close: 'بندول', eventPrefix: 'یادونه —', description: 'یادونه د حقونو د یادونې له اپ څخه جوړه شوې.', noDate: 'د یادونې نېټه لا نه ده ټاکل شوې.' },
-  tr: { shortLabel: 'Takvim', title: 'Takvime ekle', intro: 'Bu hatırlatmayı telefon takvimine nasıl ekleyeceğinizi seçin.', google: 'Google Takvim', ics: 'iPhone / diğer takvim', close: 'Kapat', eventPrefix: 'Hatırlatma —', description: 'Hak hatırlatmalarım uygulamasından oluşturulan hatırlatma.', noDate: 'Henüz hatırlatma tarihi belirtilmedi.' },
-  so: { shortLabel: 'Kalandar', title: 'Ku dar kalandarka', intro: 'Dooro sida xusuusintan loogu darayo kalandarka telefoonka.', google: 'Google Calendar', ics: 'iPhone / kalandar kale', close: 'Xir', eventPrefix: 'Xusuusin —', description: 'Xusuusin laga sameeyay app-ka xusuusinta xuquuqda.', noDate: 'Taariikh xusuusin weli lama gelin.' }
+  tr: { shortLabel: 'Takvim', title: 'Takvime ekle', intro: 'Bu hatırlatmayı telefon takvimine nasıl ekleyeceğinizi seçin.', google: 'Google Takvim', ics: 'iPhone / diğer takvim', close: 'Daha sonra', eventPrefix: 'Hatırlatma —', description: 'Hak hatırlatmalarım uygulamasından oluşturulan hatırlatma.', noDate: 'Henüz hatırlatma tarihi belirtilmedi.' },
+  so: { shortLabel: 'Kalandar', title: 'Ku dar kalandarka', intro: 'Dooro sida xusuusintan loogu darayo kalandarka telefoonka.', google: 'Google Calendar', ics: 'iPhone / kalandar kale', close: 'Hadda maya', eventPrefix: 'Xusuusin —', description: 'Xusuusin laga sameeyay app-ka xusuusinta xuquuqda.', noDate: 'Taariikh xusuusin weli lama gelin.' }
 }; return map[language] || map.fr; }
 
 function toCalendarDate(value, hour = 9, minute = 0) {
@@ -616,7 +616,7 @@ function calendarEventFor(item, ui) {
   const end = new Date(start.getTime() + 30 * 60 * 1000);
   const title = `${ui.eventPrefix} ${item.title}`;
   const appUrl = typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}` : '';
-  const details = `${ui.description}${appUrl ? '\\n' + appUrl : ''}`;
+  const details = `${ui.description}${appUrl ? '\n' + appUrl : ''}`;
   return { title, details, start, end, location: '', uid: `${item.uid || item.catalogId || 'rappel'}-${formatCalendarDateLocal(start)}@mes-rappels-droits` };
 }
 function googleCalendarUrl(event) {
@@ -957,17 +957,35 @@ export default function App() {
       return { ...s, tab: 'home', items: [makeItem(catalogId), ...s.items], toast: { title: labels.saved, body: c.title } };
     }),
     done: (uid, draft = null) => {
-      const item = draft ? normalizeItem(draft) : state.items.find((i) => i.uid === uid);
+      const existing = state.items.find((i) => i.uid === uid);
+      const item = normalizeItem({ ...(existing || {}), ...(draft || {}) });
+
+      if (!existing && !draft) return;
+
       if (item && missingRequiredInfo(item)) {
         setSelectedUid(uid);
         setState((s) => ({ ...s, tab: 'detail', toast: { title: labels.dateToEnter, body: item.title } }));
         return;
       }
-      setState((s) => ({ ...s, tab: 'home', items: s.items.map((i) => {
-        if (i.uid !== uid) return i;
-        const merged = normalizeItem({ ...i, ...(draft || {}) });
-        return { ...merged, completedOnce: true, lastAction: todayISO(), nextDate: nextDateAfterRecording(merged) };
-      }), toast: { title: '✅', body: labels.saved } }));
+
+      const completed = {
+        ...item,
+        completedOnce: true,
+        lastAction: todayISO(),
+        nextDate: nextDateAfterRecording(item),
+      };
+
+      setState((s) => ({
+        ...s,
+        tab: 'home',
+        items: s.items.map((i) => i.uid === uid ? completed : i),
+        toast: { title: '✅', body: labels.saved },
+      }));
+
+      // Après validation, proposer directement l'ajout du prochain rappel à l'agenda.
+      if (completed.nextDate) {
+        setCalendarItem(completed);
+      }
     },
     edit: (item) => { setSelectedUid(item.uid); setState((s) => ({ ...s, tab: 'detail' })); },
     guide: (item) => { setSelectedGuideId(item.catalogId); setState((s) => ({ ...s, tab: 'guides' })); },
