@@ -676,8 +676,7 @@ function CardContent({ children, className = '' }) { return <div className={clas
 function AddMenu({ actions, labels }) {
   const [open, setOpen] = useState(false);
   function choose(id) { actions.add(id); setOpen(false); }
-
-  return <div className="relative inline-flex"><Button className="rounded-full px-5 py-3 text-base shadow-lg" onClick={() => setOpen(!open)}>➕ {labels.addAction} ▾</Button>{open && <div className="absolute right-0 top-14 z-50 max-h-[72vh] w-80 overflow-auto rounded-3xl border border-slate-200 bg-white p-3 text-left shadow-2xl">{CATALOG.map((c) => <button key={c.id} type="button" onClick={() => choose(c.id)} className="flex w-full items-center gap-3 rounded-2xl p-3 text-left hover:bg-slate-50"><InstitutionBadge item={c} compact /><span className="min-w-0"><span className="block font-bold text-slate-950">{c.title}</span><span className="block text-xs text-slate-500">{c.short}</span></span></button>)}</div>}</div>;
+  return <div className="relative inline-flex"><Button className="px-5 py-3 text-base shadow-md" onClick={() => setOpen(!open)}>➕ {labels.addAction} ▾</Button>{open && <div className="absolute right-0 top-12 z-50 max-h-[70vh] w-72 overflow-auto rounded-2xl border bg-white p-2 text-left shadow-xl">{CATALOG.map((c) => <button key={c.id} type="button" onClick={() => choose(c.id)} className="flex w-full items-start gap-3 rounded-xl p-3 text-left hover:bg-slate-50"><span className="text-2xl">{c.icon}</span><span><span className="block font-semibold">{c.title}</span><span className="block text-xs text-slate-500">{c.short}</span></span></button>)}</div>}</div>;
 }
 
 function Toast({ toast, close }) { if (!toast) return null; return <div className="fixed left-4 right-4 top-20 z-50 mx-auto max-w-xl rounded-2xl border bg-white p-4 shadow-lg sm:left-auto sm:right-6 sm:w-96"><div className="flex items-start justify-between gap-3"><div><div className="font-bold">{toast.title}</div><div className="mt-1 text-sm text-slate-600">{toast.body}</div></div><button onClick={close} className="rounded-lg px-2 py-1 text-slate-500 hover:bg-slate-100">×</button></div></div>; }
@@ -694,126 +693,19 @@ function CalendarDialog({ item, language, onClose }) {
 }
 
 
-
-function dateUiFor(language) {
-  const map = {
-    fr: { dates: 'Mes dates', reminders: 'Mes rappels', next: 'Prochain rappel', upcoming: 'Rappels à venir', seeAll: 'Voir tout', recorded: 'Déjà enregistré', add: 'Ajouter un rappel', view: 'Voir', allDates: 'Toutes mes dates', allDatesSub: 'Voir toutes mes échéances', orangeHelp: 'Les dates en orange arrivent bientôt.', soon: 'Arrive bientôt', upcomingBadge: 'À venir', late: 'En retard', done: 'Enregistré', why: 'Pourquoi ce rappel ?', nextDate: 'Prochaine date', actions: 'Actions', autoOn: 'Les rappels automatiques sont activés', noReminder: 'Aucun rappel ajouté pour le moment.', createFirst: 'Ajoutez votre premier rappel avec le bouton ci-dessous.' },
-    en: { dates: 'My dates', reminders: 'My reminders', next: 'Next reminder', upcoming: 'Upcoming reminders', seeAll: 'See all', recorded: 'Already recorded', add: 'Add a reminder', view: 'View', allDates: 'All my dates', allDatesSub: 'See all my deadlines', orangeHelp: 'Orange dates are coming soon.', soon: 'Coming soon', upcomingBadge: 'Upcoming', late: 'Late', done: 'Recorded', why: 'Why this reminder?', nextDate: 'Next date', actions: 'Actions', autoOn: 'Automatic reminders are enabled', noReminder: 'No reminder added yet.', createFirst: 'Add your first reminder with the button below.' },
-    es: { dates: 'Mis fechas', reminders: 'Mis recordatorios', next: 'Próximo recordatorio', upcoming: 'Próximos recordatorios', seeAll: 'Ver todo', recorded: 'Ya registrado', add: 'Añadir un recordatorio', view: 'Ver', allDates: 'Todas mis fechas', allDatesSub: 'Ver todos mis vencimientos', orangeHelp: 'Las fechas en naranja llegan pronto.', soon: 'Llega pronto', upcomingBadge: 'Por venir', late: 'Con retraso', done: 'Registrado', why: '¿Por qué este recordatorio?', nextDate: 'Próxima fecha', actions: 'Acciones', autoOn: 'Los recordatorios automáticos están activados', noReminder: 'Aún no hay recordatorios.', createFirst: 'Añada su primer recordatorio con el botón de abajo.' },
-    ru: { dates: 'Мои даты', reminders: 'Мои напоминания', next: 'Следующее напоминание', upcoming: 'Ближайшие напоминания', seeAll: 'Все', recorded: 'Уже сохранено', add: 'Добавить напоминание', view: 'Открыть', allDates: 'Все мои даты', allDatesSub: 'Посмотреть все сроки', orangeHelp: 'Оранжевые даты скоро наступят.', soon: 'Скоро', upcomingBadge: 'Предстоит', late: 'Просрочено', done: 'Сохранено', why: 'Зачем это напоминание?', nextDate: 'Следующая дата', actions: 'Действия', autoOn: 'Автоматические напоминания включены', noReminder: 'Пока нет напоминаний.', createFirst: 'Добавьте первое напоминание кнопкой ниже.' },
-    ar: { dates: 'مواعيدي', reminders: 'تذكيراتي', next: 'التذكير القادم', upcoming: 'التذكيرات القادمة', seeAll: 'عرض الكل', recorded: 'تم التسجيل', add: 'إضافة تذكير', view: 'عرض', allDates: 'كل المواعيد', allDatesSub: 'عرض كل المواعيد', orangeHelp: 'المواعيد باللون البرتقالي قريبة.', soon: 'قريبًا', upcomingBadge: 'قادمة', late: 'متأخر', done: 'مسجل', why: 'لماذا هذا التذكير؟', nextDate: 'الموعد القادم', actions: 'الإجراءات', autoOn: 'التذكيرات التلقائية مفعلة', noReminder: 'لا يوجد تذكير بعد.', createFirst: 'أضف أول تذكير بالزر أدناه.' },
-    tr: { dates: 'Tarihlerim', reminders: 'Hatırlatmalarım', next: 'Sonraki hatırlatma', upcoming: 'Yaklaşan hatırlatmalar', seeAll: 'Tümünü gör', recorded: 'Kaydedildi', add: 'Hatırlatma ekle', view: 'Gör', allDates: 'Tüm tarihlerim', allDatesSub: 'Tüm son tarihleri gör', orangeHelp: 'Turuncu tarihler yakında.', soon: 'Yakında', upcomingBadge: 'Yaklaşan', late: 'Gecikti', done: 'Kaydedildi', why: 'Bu hatırlatma neden?', nextDate: 'Sonraki tarih', actions: 'İşlemler', autoOn: 'Otomatik hatırlatmalar açık', noReminder: 'Henüz hatırlatma yok.', createFirst: 'Aşağıdaki düğmeyle ilk hatırlatmayı ekleyin.' },
-    so: { dates: 'Taariikhahayga', reminders: 'Xusuusintayda', next: 'Xusuusinta xigta', upcoming: 'Xusuusin soo socota', seeAll: 'Dhammaan eeg', recorded: 'La kaydiyay', add: 'Ku dar xusuusin', view: 'Eeg', allDates: 'Dhammaan taariikhaha', allDatesSub: 'Eeg dhammaan waqtiga kama dambaysta ah', orangeHelp: 'Taariikhaha oranji ah way soo dhow yihiin.', soon: 'Way dhowdahay', upcomingBadge: 'Soo socota', late: 'Dib bay u dhacday', done: 'La kaydiyay', why: 'Maxaa xusuusintan?', nextDate: 'Taariikhda xigta', actions: 'Ficillo', autoOn: 'Xusuusin otomaatig ah waa daaran tahay', noReminder: 'Wali xusuusin lama darin.', createFirst: 'Ku dar xusuusinta koowaad badhanka hoose.' },
-  };
-  if (language === 'fa' || language === 'dari' || language === 'ps') return map.ar;
-  if (language === 'uk') return map.ru;
-  return map[language] || map.fr;
-}
-
-function reminderTone(item) {
-  if (!item || !item.nextDate) return 'neutral';
-  const d = daysUntil(item.nextDate);
-  if (d < 0) return 'late';
-  if (d <= 10) return 'soon';
-  return 'ok';
-}
-
-function statusTextFor(item, language, done = false) {
-  const ui = dateUiFor(language);
-  if (done) return ui.done;
-  const tone = reminderTone(item);
-  if (tone === 'late') return ui.late;
-  if (tone === 'soon') return ui.soon;
-  return ui.upcomingBadge;
-}
-
-function sortedDatedItems(items) {
-  return items
-    .filter((item) => item.nextDate && !missingRequiredInfo(item))
-    .sort((a, b) => parseDate(a.nextDate) - parseDate(b.nextDate));
-}
-
-function InstitutionBadge({ item, compact = false }) {
-  const id = item.catalogId || item.id;
-  const size = compact ? 'h-12 w-12' : 'h-20 w-20';
-  const textSize = compact ? 'text-[10px]' : 'text-xs';
-
-  if (id === 'france_travail') {
-    return <div className={`${size} shrink-0 rounded-3xl bg-white shadow-sm ring-1 ring-slate-200 flex flex-col items-center justify-center`}><div className="grid grid-cols-3 gap-0.5">{['bg-blue-500','bg-pink-400','bg-amber-400','bg-slate-700','bg-cyan-400','bg-rose-500','bg-indigo-500','bg-emerald-400','bg-orange-400'].map((c, i) => <span key={i} className={`h-1.5 w-1.5 rounded-full ${c}`} />)}</div><div className={`mt-1 leading-tight text-blue-900 ${textSize}`}>France<br/>Travail</div></div>;
-  }
-
-  if (id === 'caf_rsa' || id === 'prime_activite' || id === 'aah_caf') {
-    return <div className={`${size} shrink-0 rounded-3xl bg-blue-700 text-white shadow-sm flex flex-col items-center justify-center`}><div className="text-xl">❄</div><div className={`font-bold leading-tight ${textSize}`}>CAF</div></div>;
-  }
-
-  if (id === 'impots_revenus') {
-    return <div className={`${size} shrink-0 rounded-3xl bg-white shadow-sm ring-1 ring-blue-100 flex flex-col items-center justify-center`}><div className="rounded-lg bg-blue-700 px-2 py-2 text-white text-xs leading-tight">RÉPUBLIQUE<br/>FRANÇAISE</div><div className={`mt-1 font-bold tracking-wide text-blue-900 ${textSize}`}>IMPÔTS</div></div>;
-  }
-
-  if (id === 'logement_social') {
-    return <div className={`${size} shrink-0 rounded-3xl bg-violet-50 text-violet-700 shadow-sm flex flex-col items-center justify-center`}><div className="text-3xl">🏢</div><div className={`font-bold ${textSize}`}>Logement</div></div>;
-  }
-
-  if (id === 'titre_sejour') {
-    return <div className={`${size} shrink-0 rounded-3xl bg-sky-50 text-sky-700 shadow-sm flex flex-col items-center justify-center`}><div className="text-3xl">🪪</div><div className={`font-bold ${textSize}`}>Séjour</div></div>;
-  }
-
-  if (id === 'css_sante' || id === 'ame') {
-    return <div className={`${size} shrink-0 rounded-3xl bg-emerald-50 text-emerald-700 shadow-sm flex flex-col items-center justify-center`}><div className="text-3xl">🏥</div><div className={`font-bold ${textSize}`}>Santé</div></div>;
-  }
-
-  if (id === 'mdph' || id === 'aah_mdph' || id === 'rqth') {
-    return <div className={`${size} shrink-0 rounded-3xl bg-purple-50 text-purple-700 shadow-sm flex flex-col items-center justify-center`}><div className="text-3xl">♿</div><div className={`font-bold ${textSize}`}>MDPH</div></div>;
-  }
-
-  return <div className={`${size} shrink-0 rounded-3xl bg-slate-100 text-slate-700 shadow-sm flex flex-col items-center justify-center`}><div className="text-3xl">{item.icon || '📌'}</div></div>;
-}
-
-function StatusPill({ item, language, done = false }) {
-  const tone = done ? 'done' : reminderTone(item);
-  const cls = tone === 'late' ? 'bg-red-50 text-red-700 ring-red-100' : tone === 'soon' ? 'bg-orange-50 text-orange-700 ring-orange-100' : tone === 'done' ? 'bg-emerald-50 text-emerald-700 ring-emerald-100' : 'bg-blue-50 text-blue-700 ring-blue-100';
-  return <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold ring-1 ${cls}`}>{statusTextFor(item, language, done)}</span>;
-}
-
-function MiniReminderRow({ item, labels, actions, language }) {
-  return <button type="button" onClick={() => actions.edit(item)} className="flex w-full items-center gap-3 rounded-3xl border border-slate-100 bg-white p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"><InstitutionBadge item={item} compact /><div className="min-w-0 flex-1"><div className="font-bold text-slate-950">{item.title}</div><div className="mt-1 text-sm text-slate-500">📅 {formatDate(item.nextDate)}</div></div><div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-blue-700">›</div></button>;
-}
-
-function DoneRow({ item, actions }) {
-  return <button type="button" onClick={() => actions.edit(item)} className="flex w-full items-center justify-between gap-3 rounded-2xl bg-white/70 px-4 py-3 text-left"><div className="flex items-center gap-3"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-600 text-white">✓</span><div><div className="font-semibold text-slate-900">{item.title}</div><div className="text-sm text-emerald-700">{item.lastAction ? `Enregistré le ${formatDate(item.lastAction)}` : 'Enregistré'}</div></div></div><span className="text-2xl text-emerald-700">›</span></button>;
-}
-
-function TimelineRow({ item, actions, language }) {
-  const tone = reminderTone(item);
-  const dot = tone === 'late' ? 'bg-red-500' : tone === 'soon' ? 'bg-orange-500' : 'bg-emerald-500';
-  const dateColor = tone === 'late' ? 'text-red-600' : tone === 'soon' ? 'text-orange-600' : 'text-emerald-600';
-
-  return <div className="relative flex gap-4 pl-2"><div className="flex w-8 flex-col items-center"><span className={`mt-8 h-4 w-4 rounded-full ring-4 ring-white ${dot}`} /><span className="mt-1 h-full w-px bg-slate-200" /></div><div className="mb-4 flex-1 rounded-3xl border border-slate-100 bg-white p-4 shadow-sm"><div className="flex items-center gap-4"><InstitutionBadge item={item} compact /><div className="min-w-0 flex-1"><div className={`font-bold ${dateColor}`}>{formatDate(item.nextDate)}</div><div className="text-lg font-bold text-slate-950">{item.title}</div><div className="mt-1"><StatusPill item={item} language={language} /></div></div><Button variant="outline" onClick={() => actions.edit(item)}>{dateUiFor(language).view}</Button></div></div></div>;
-}
-
-
 function ProcedureCard({ item, labels, actions, calendarUi }) {
   const todo = showAsTodo(item);
   const missingDate = missingRequiredInfo(item);
   const canAddCalendar = Boolean(item.nextDate) && !missingDate;
-  const language = typeof document !== 'undefined' ? (document.documentElement.lang || 'fr') : 'fr';
 
-  return <Card className={`overflow-hidden rounded-3xl border-0 shadow-sm ${todo ? 'bg-white' : 'bg-emerald-50/70'}`}><CardContent className="p-4"><div className="flex items-start gap-4"><InstitutionBadge item={item} compact /><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h3 className="text-lg font-bold text-slate-950">{item.title}</h3><StatusPill item={item} language={language} done={!todo} /></div><p className="mt-1 text-sm text-slate-600">{missingDate ? labels.dateToEnter : todo ? item.short : `${labels.doneOn} ${formatDate(item.lastAction)}`}</p>{item.nextDate && <p className="mt-2 text-sm font-semibold text-slate-900">📅 {labels.nextReminder} : {formatDate(item.nextDate)}</p>}</div></div>{todo ? (missingDate ? <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2"><Button variant="outline" onClick={() => actions.guide(item)}>📘 {labels.guideStep}</Button><Button variant="default" onClick={() => actions.edit(item)}>📅 {labels.dateToEnter}</Button></div> : <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-4"><Button variant="outline" onClick={() => actions.guide(item)}>📘 {labels.guideStep}</Button>{canAddCalendar && <Button variant="outline" onClick={() => actions.calendar(item)}>📅 {calendarUi.shortLabel}</Button>}<Button variant="default" onClick={() => actions.done(item.uid)}>✅ {labels.doneButton}</Button><Button variant="ghost" onClick={() => actions.edit(item)}>⚙ {labels.rectify}</Button></div>) : <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3"><Button variant="outline" onClick={() => actions.edit(item)}>⚙ {labels.rectify}</Button>{canAddCalendar && <Button variant="outline" onClick={() => actions.calendar(item)}>📅 {calendarUi.shortLabel}</Button>}<Button variant="ghost" onClick={() => actions.askDelete(item.uid)}>🗑 {labels.delete}</Button></div>}</CardContent></Card>;
+  return <Card className={`overflow-hidden border-l-4 ${todo ? 'border-l-slate-900' : 'border-l-emerald-500'}`}><CardContent className="p-4"><div className="flex items-start gap-3"><div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-3xl">{item.icon}</div><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h3 className="text-lg font-bold">{item.title}</h3><span className="rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-700">{item.cat}</span></div><p className="mt-1 text-sm text-slate-600">{missingDate ? labels.dateToEnter : todo ? item.short : `${labels.doneOn} ${formatDate(item.lastAction)}`}</p>{!todo && <p className="mt-1 text-xs text-slate-500">{labels.nextReminder} : {formatDate(item.nextDate)}</p>}{todo && item.nextDate && <p className="mt-1 text-xs text-slate-500">{labels.nextReminder} : {formatDate(item.nextDate)}</p>}</div></div>{todo ? (missingDate ? <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2"><Button variant="outline" onClick={() => actions.guide(item)}>📘 {labels.guideStep}</Button><Button variant="success" onClick={() => actions.edit(item)}>📅 {labels.dateToEnter}</Button></div> : <div className="mt-4 space-y-2"><p className="text-sm font-medium text-slate-700">{labels.finishedQuestion}</p><div className="grid grid-cols-1 gap-2 sm:grid-cols-4"><Button variant="outline" onClick={() => actions.guide(item)}>📘 {labels.guideStep}</Button>{canAddCalendar && <Button variant="outline" onClick={() => actions.calendar(item)}>📅 {calendarUi.shortLabel}</Button>}<Button variant="default" onClick={() => actions.done(item.uid)}>✅ {labels.doneButton}</Button><Button variant="ghost" onClick={() => actions.edit(item)}>⚙ {labels.rectify}</Button></div></div>) : <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3"><Button variant="outline" onClick={() => actions.edit(item)}>⚙ {labels.rectify}</Button>{canAddCalendar && <Button variant="outline" onClick={() => actions.calendar(item)}>📅 {calendarUi.shortLabel}</Button>}<Button variant="ghost" onClick={() => actions.askDelete(item.uid)}>🗑 {labels.delete}</Button></div>}</CardContent></Card>;
 }
 
 function Header({ labels, actions }) {
-  return <div className="sticky top-0 z-20 border-b border-slate-100 bg-white/95 backdrop-blur"><div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3"><button type="button" onClick={() => actions.setTab('home')} className="flex items-center gap-3 text-left"><div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-3xl bg-orange-50"><img src="/icon-192.png" alt="" className="h-full w-full object-cover" /></div><div><div className="text-lg font-black leading-tight text-slate-950">{labels.appTitle}</div><div className="text-xs font-medium text-slate-500">{labels.appSubtitle}</div></div></button><div className="flex items-center gap-2"><Button variant="ghost" className="hidden sm:inline-flex" onClick={() => actions.setTab('settings')}>🌐 {labels.language}</Button><div className="hidden sm:block"><AddMenu actions={actions} labels={labels} /></div></div></div></div>;
+  return <div className="sticky top-0 z-20 border-b bg-white/90 backdrop-blur"><div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3"><button type="button" onClick={() => actions.setTab('home')} className="flex items-center gap-3 text-left"><div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-2xl bg-slate-900"><img src="/icon-192.png" alt="" className="h-full w-full object-cover" /></div><div><div className="font-bold leading-tight">{labels.appTitle}</div><div className="text-xs text-slate-500">{labels.appSubtitle}</div></div></button><div className="flex items-center gap-2"><Button variant="ghost" className="hidden sm:inline-flex" onClick={() => actions.setTab('settings')}>🌐 {labels.language}</Button><AddMenu actions={actions} labels={labels} /></div></div></div>;
 }
-function Nav({ labels, tab, setTab, language = 'fr' }) {
-  const ui = dateUiFor(language);
-  const tabs = [['home', '🏠', labels.home], ['alerts', '📅', ui.dates], ['settings', '⚙️', labels.settings]];
-  return <div className="mb-6 hidden flex-wrap gap-2 sm:flex">{tabs.map(([id, icon, label]) => <Button key={id} variant={tab === id ? 'default' : 'outline'} onClick={() => setTab(id)}><span>{icon}</span>{label}</Button>)}</div>;
-}
-function BottomNav({ labels, tab, setTab, language = 'fr' }) {
-  const ui = dateUiFor(language);
-  const tabs = [['home', '🏠', labels.home], ['alerts', '📅', ui.dates], ['settings', '⚙️', labels.settings]];
-  return <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-slate-100 bg-white/95 backdrop-blur sm:hidden"><div className="grid grid-cols-3">{tabs.map(([id, icon, label]) => <button key={id} type="button" onClick={() => setTab(id)} className={`flex flex-col items-center gap-1 px-1 py-2 text-[11px] ${tab === id ? 'font-black text-blue-700' : 'font-medium text-slate-500'}`}><span className="text-xl">{icon}</span><span>{label}</span></button>)}</div></div>;
-}
+function Nav({ labels, tab, setTab }) { const tabs = [['home', '🏠', labels.home], ['alerts', '🔔', labels.alerts], ['settings', '⚙️', labels.settings]]; return <div className="mb-6 hidden flex-wrap gap-2 sm:flex">{tabs.map(([id, icon, label]) => <Button key={id} variant={tab === id ? 'default' : 'outline'} onClick={() => setTab(id)}><span>{icon}</span>{label}</Button>)}</div>; }
+function BottomNav({ labels, tab, setTab }) { const tabs = [['home', '🏠', labels.home], ['alerts', '🔔', labels.alerts], ['settings', '⚙️', labels.settings]]; return <div className="fixed bottom-0 left-0 right-0 z-30 border-t bg-white sm:hidden"><div className="grid grid-cols-3">{tabs.map(([id, icon, label]) => <button key={id} type="button" onClick={() => setTab(id)} className={`flex flex-col items-center gap-1 px-1 py-2 text-[11px] ${tab === id ? 'font-bold text-slate-950' : 'text-slate-500'}`}><span className="text-lg">{icon}</span><span>{label}</span></button>)}</div></div>; }
 
 function Onboarding({ state, setState, labels }) { return <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-slate-50 to-white p-4"><Card className="w-full max-w-xl rounded-3xl shadow-lg"><CardContent className="p-6 sm:p-8"><div className="mb-4 flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-slate-900"><img src="/icon-192.png" alt="" className="h-full w-full object-cover" /></div><h1 className="text-3xl font-bold">{labels.welcome}</h1><p className="mt-2 text-slate-600">{labels.chooseLanguage}</p><div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">{LANGUAGES.map((lang) => <button key={lang.code} type="button" onClick={() => setState((s) => ({ ...s, language: lang.code }))} className={`rounded-2xl border p-4 text-left hover:bg-slate-50 ${state.language === lang.code ? 'ring-2 ring-slate-900' : ''}`}><div className="font-semibold">{lang.label}</div></button>)}</div><Button className="mt-6 w-full py-6 text-base" onClick={() => setState((s) => ({ ...s, onboarded: true }))}>{labels.continue}</Button></CardContent></Card></div>; }
 
@@ -826,24 +718,20 @@ function InstallPanel({ labels, deferredInstallPrompt, standalone, platform, onI
 }
 
 function Home({ state, labels, actions, installProps }) {
-  const ui = dateUiFor(state.language);
   const calendarUi = calendarUiFor(state.language);
-  const dated = sortedDatedItems(state.items);
-  const featured = dated[0] || null;
-  const upcoming = dated.filter((item) => !featured || item.uid !== featured.uid).slice(0, 3);
-  const done = state.items.filter((i) => i.completedOnce).sort((a, b) => parseDate(b.lastAction) - parseDate(a.lastAction)).slice(0, 3);
-
-  return <div className="relative space-y-6 pb-8">{(!installProps.standalone || installProps.permission !== 'granted') && <InstallPanel labels={labels} {...installProps} />}{featured ? <section className="overflow-hidden rounded-[2rem] border border-orange-100 bg-gradient-to-br from-orange-50 via-white to-amber-50 p-5 shadow-sm"><div className="mb-4 inline-flex items-center gap-2 rounded-full bg-orange-500 px-4 py-2 text-sm font-black text-white">🔔 {ui.next}</div><div className="flex items-center gap-5"><InstitutionBadge item={featured} /><div className="min-w-0 flex-1"><h1 className="text-3xl font-black leading-tight text-slate-950">{featured.title}</h1><div className="mt-3"><StatusPill item={featured} language={state.language} /></div><div className="mt-4 flex items-center gap-2 text-2xl font-black text-slate-950">📅 {formatDate(featured.nextDate)}</div></div></div><div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3"><Button variant="outline" className="py-4 text-base" onClick={() => actions.guide(featured)}>📘 {labels.guideStep}</Button><Button variant="outline" className="py-4 text-base" onClick={() => actions.calendar(featured)}>📅 {calendarUi.shortLabel}</Button><Button variant="default" className="py-4 text-base bg-orange-600 hover:bg-orange-700" onClick={() => actions.done(featured.uid)}>✅ {labels.doneButton}</Button></div></section> : <section className="rounded-[2rem] border border-dashed border-slate-200 bg-white p-8 text-center shadow-sm"><div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 text-3xl">📅</div><h1 className="text-2xl font-black text-slate-950">{ui.noReminder}</h1><p className="mt-2 text-slate-500">{ui.createFirst}</p><div className="mt-5"><AddMenu actions={actions} labels={labels} /></div></section>}<section><div className="mb-3 flex items-center justify-between"><h2 className="flex items-center gap-2 text-xl font-black text-slate-950">📅 {ui.upcoming}</h2><button type="button" onClick={() => actions.setTab('alerts')} className="font-bold text-blue-700">{ui.seeAll} ›</button></div><div className="space-y-3">{upcoming.length ? upcoming.map((item) => <MiniReminderRow key={item.uid} item={item} labels={labels} actions={actions} language={state.language} />) : <p className="rounded-3xl bg-white p-5 text-sm text-slate-500 shadow-sm">{labels.emptyTodo}</p>}</div></section><section className="rounded-[2rem] border border-emerald-100 bg-emerald-50/70 p-4"><h2 className="mb-3 flex items-center gap-2 text-xl font-black text-emerald-900">✅ {ui.recorded}</h2><div className="space-y-2">{done.length ? done.map((item) => <DoneRow key={item.uid} item={item} actions={actions} />) : <p className="rounded-2xl bg-white/80 p-4 text-sm text-slate-500">{labels.emptyDone}</p>}</div></section><div className="fixed bottom-20 right-4 z-20 sm:hidden"><AddMenu actions={actions} labels={{ ...labels, addAction: ui.add }} /></div></div>;
+  const todo = state.items.filter(showAsTodo).sort((a, b) => parseDate(a.nextDate) - parseDate(b.nextDate));
+  const done = state.items.filter((i) => !showAsTodo(i)).sort((a, b) => parseDate(b.lastAction) - parseDate(a.lastAction));
+  return <div className="space-y-6"><section className="rounded-3xl bg-slate-900 p-6 text-white shadow-sm sm:p-8"><h1 className="text-3xl font-bold">{labels.myProcedures}</h1><p className="mt-2 text-slate-300">{labels.homeIntro}</p></section>{(!installProps.standalone || installProps.permission !== 'granted') && <InstallPanel labels={labels} {...installProps} />}<section className="rounded-3xl border-2 border-slate-300 bg-white p-4 shadow-sm"><div className="mb-3 flex items-center justify-between"><div><h2 className="text-xl font-bold">{labels.todo}</h2><p className="text-sm text-slate-500">{labels.todoHelp}</p></div><span className="rounded-full bg-slate-200 px-3 py-1 text-sm text-slate-700">{todo.length}</span></div><div className="space-y-3">{todo.length ? todo.map((item) => <ProcedureCard key={item.uid} item={item} labels={labels} actions={actions} calendarUi={calendarUi} />) : <EmptyState labels={labels} actions={actions} />}</div></section><section className="rounded-3xl border border-emerald-200 bg-emerald-50/40 p-4"><div className="mb-3 flex items-center justify-between"><div><h2 className="text-xl font-bold">{labels.recentlyDone}</h2><p className="text-sm text-emerald-800">{labels.doneHelp}</p></div><span className="rounded-full bg-emerald-100 px-3 py-1 text-sm text-emerald-800">{done.length}</span></div><div className="space-y-3">{done.length ? done.map((item) => <ProcedureCard key={item.uid} item={item} labels={labels} actions={actions} calendarUi={calendarUi} />) : <p className="rounded-2xl bg-white p-4 text-sm text-slate-500">{labels.emptyDone}</p>}</div></section></div>;
 }
 
-function Alerts({ state, labels, actions, permission, setPermission, language = 'fr' }) {
-  const ui = dateUiFor(language);
-  const dated = sortedDatedItems(state.items);
+function Alerts({ state, labels, actions, permission, setPermission }) {
+  const reminders = upcomingAlerts(state.items);
   async function ask() { const current = notificationStatus(); if (current === 'unsupported' || current === 'denied') { setPermission(current); return; } try { setPermission(await window.Notification.requestPermission()); } catch { setPermission('unsupported'); } }
   const message = permission === 'denied' ? [labels.notificationsDeniedTitle, labels.notificationsDeniedText, 'bg-red-50 border-red-100 text-red-900'] : permission === 'granted' ? [labels.notificationsGrantedTitle, labels.notificationsGrantedText, 'bg-emerald-50 border-emerald-100 text-emerald-900'] : permission === 'unsupported' ? [labels.notificationsUnsupportedTitle, labels.notificationsUnsupportedText, 'bg-amber-50 border-amber-100 text-amber-900'] : [labels.browserNotifications, labels.notificationsDefaultText, 'bg-slate-50 border-slate-100 text-slate-700'];
-
-  return <div className="relative space-y-6 pb-8"><div><h1 className="flex items-center gap-3 text-3xl font-black text-slate-950">📅 {ui.dates}</h1><p className="mt-1 text-slate-600">{ui.allDatesSub}</p></div><Card className="rounded-3xl border-0 shadow-sm"><CardContent className="flex items-center gap-4 p-5"><div className="flex h-14 w-14 items-center justify-center rounded-full bg-orange-50 text-3xl">⌁</div><div className="flex-1"><div className="text-xl font-black text-slate-950">{ui.allDates}</div><div className="text-sm text-slate-500">{ui.allDatesSub}</div></div><span className="text-2xl text-slate-500">⌄</span></CardContent></Card><div>{dated.length ? dated.map((item) => <TimelineRow key={item.uid} item={item} actions={actions} language={language} />) : <p className="rounded-3xl bg-white p-6 text-center text-slate-500 shadow-sm">{ui.noReminder}</p>}</div><div className="rounded-3xl bg-orange-50 p-4 text-sm text-orange-950">ℹ️ {ui.orangeHelp}</div><Card className="rounded-3xl border-0 shadow-sm"><CardContent className="p-5"><div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="text-lg font-black">🔔 {labels.browserNotifications}</h2><p className="mt-1 text-slate-600">{labels.currentStatus} : <strong>{permission}</strong></p></div>{permission === 'default' && <Button variant="outline" onClick={ask}>{labels.allow}</Button>}</div><div className={`mt-4 rounded-2xl border p-4 text-sm ${message[2]}`}><div className="font-semibold">{message[0]}</div><div className="mt-1">{message[1]}</div></div></CardContent></Card><div className="fixed bottom-20 right-4 z-20 sm:hidden"><AddMenu actions={actions} labels={{ ...labels, addAction: ui.add }} /></div></div>;
+  return <div className="space-y-6"><div><h1 className="text-3xl font-bold">{labels.alerts}</h1><p className="mt-1 text-slate-600">{labels.alertsIntro}</p></div><Card><CardContent className="p-5"><div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="text-lg font-bold">🔔 {labels.browserNotifications}</h2><p className="mt-1 text-slate-600">{labels.currentStatus} : <strong>{permission}</strong></p></div>{permission === 'default' && <Button variant="outline" onClick={ask}>{labels.allow}</Button>}</div><div className={`mt-4 rounded-2xl border p-4 text-sm ${message[2]}`}><div className="font-semibold">{message[0]}</div><div className="mt-1">{message[1]}</div></div></CardContent></Card><Card><CardContent className="p-5"><h2 className="text-lg font-bold">{labels.nextAlerts}</h2><div className="mt-4 space-y-3">{reminders.length ? reminders.map((r) => <button key={`${r.uid}-${r.offset}`} type="button" onClick={() => actions.edit(r)} className="flex w-full items-center justify-between gap-3 rounded-xl bg-slate-50 p-3 text-left hover:bg-slate-100"><div><div className="font-semibold">{r.icon} {r.title}</div><div className="text-sm text-slate-500">{r.label ? r.label : r.offset < 0 ? Math.abs(r.offset) + ' jour(s) avant' : r.offset === 0 ? 'Le jour même' : r.offset + ' jour(s) après'}</div></div><div className="text-right text-sm font-semibold">{formatDate(r.reminderDate)}</div></button>) : <p className="text-slate-500">{labels.noAlerts}</p>}</div></CardContent></Card></div>;
 }
+
+function RepairPanel({ language, onRepair }) { const repair = repairUiFor(language); return <Card><CardContent className="p-5"><h2 className="text-lg font-bold">🛠️ {repair.title}</h2><p className="mt-1 text-slate-600">{repair.text}</p><div className="mt-4 rounded-2xl bg-amber-50 p-4 text-sm text-amber-950">{repair.warning}</div><Button variant="outline" className="mt-4 py-4" onClick={onRepair}>🛠️ {repair.button}</Button></CardContent></Card>; }
 
 function Settings({ state, labels, setState, appUrl, installProps, onRepair }) { return <div className="space-y-6"><div><h1 className="text-3xl font-bold">{labels.settings}</h1><p className="mt-1 text-slate-600">{labels.settingsIntro}</p></div><InstallPanel labels={labels} {...installProps} /><RepairPanel language={state.language} onRepair={onRepair} /><Card><CardContent className="p-5"><h2 className="text-lg font-bold">🌐 {labels.language}</h2><div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-4">{LANGUAGES.map((lang) => <Button key={lang.code} variant={state.language === lang.code ? 'default' : 'outline'} className="justify-start" onClick={() => setState((s) => ({ ...s, language: lang.code, toast: { title: labelsFor(lang.code).saved, body: lang.label } }))}>{lang.label}</Button>)}</div></CardContent></Card><Card><CardContent className="p-5"><h2 className="text-lg font-bold">📱 {labels.shareApp}</h2><p className="mt-1 text-slate-600">{labels.scanToInstall}</p><div className="mt-4 inline-block rounded-2xl bg-white p-4 shadow-sm"><QRCodeSVG value={appUrl} size={220} includeMargin /></div><p className="mt-3 max-w-xl text-sm text-slate-600">{labels.installHelp}</p><p className="mt-2 break-all rounded-xl bg-slate-50 p-3 text-xs text-slate-600">{appUrl}</p></CardContent></Card></div>; }
 
@@ -868,11 +756,8 @@ function Detail({ item, labels, actions, language }) {
   const c = catalogFor(draft);
   const tax = taxUiFor(language);
   const cal = calendarUiFor(language);
-  const ui = dateUiFor(language);
   const isTax = draft.rule === 'impots_revenus';
   const taxDeadline = isTax ? impotsDeadlineForLocation(draft) : '';
-  const cleanDraft = withImpotsAutoDate(draft);
-  const canAddCalendar = Boolean(cleanDraft.nextDate) && !missingRequiredInfo(cleanDraft);
 
   function updateTaxResidence(value) {
     const nextDraft = { ...draft, taxResidence: value, taxDepartment: value === 'france' ? draft.taxDepartment : '' };
@@ -884,10 +769,10 @@ function Detail({ item, labels, actions, language }) {
     setDraft(withImpotsAutoDate(nextDraft));
   }
 
-  return <div className="space-y-5 pb-8"><Button variant="ghost" onClick={() => actions.setTab('home')}>← {labels.back}</Button><section className="rounded-[2rem] bg-white p-5 shadow-sm"><div className="flex items-center gap-5"><InstitutionBadge item={draft} /><div><h1 className="text-3xl font-black leading-tight text-slate-950">{draft.title}</h1><p className="mt-1 text-lg font-semibold text-orange-600">{draft.short}</p></div></div></section><section className="rounded-[2rem] bg-white p-5 shadow-sm"><div className="flex gap-4"><div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-orange-50 text-orange-700">i</div><div><h2 className="text-xl font-black text-orange-700">{ui.why}</h2><p className="mt-2 leading-relaxed text-slate-700">{c.timing}</p></div></div></section>{isTax && <section className="rounded-[2rem] bg-white p-5 shadow-sm"><h2 className="text-xl font-black text-slate-950">{tax.title}</h2><p className="mt-1 text-sm text-slate-600">{tax.help}</p><label className="mt-4 block space-y-2"><span className="text-sm font-bold text-slate-700">{tax.residence}</span><select value={draft.taxResidence || ''} onChange={(e) => updateTaxResidence(e.target.value)} className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3"><option value="">{tax.choose}</option><option value="france">{tax.france}</option><option value="etranger">{tax.abroad}</option></select></label>{draft.taxResidence === 'france' && <label className="mt-4 block space-y-2"><span className="text-sm font-bold text-slate-700">{tax.department}</span><input value={draft.taxDepartment || ''} inputMode="text" maxLength={3} placeholder={tax.departmentPlaceholder} onChange={(e) => updateTaxDepartment(e.target.value)} className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3" /></label>}{draft.taxResidence === 'etranger' && <div className="mt-4 rounded-2xl bg-slate-50 p-3 text-sm text-slate-600">{tax.abroadHelp}</div>}{taxDeadline && <div className="mt-4 rounded-2xl bg-blue-50 p-3 text-sm text-blue-950"><strong>{labels.officialMarker} :</strong> {formatDate(taxDeadline)}<div className="mt-1 text-xs opacity-80">{tax.dateHelp}</div></div>}</section>}{!isTax && needsDate(draft) && <section className="rounded-[2rem] bg-white p-5 shadow-sm"><label className="block space-y-2"><span className="text-sm font-bold text-slate-700">{labels.dateToEnter}</span><input type="date" value={draft.nextDate} onChange={(e) => setDraft({ ...draft, nextDate: e.target.value })} className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3" /></label></section>}<section className="rounded-[2rem] bg-white p-5 shadow-sm"><div className="flex gap-4"><div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white">📅</div><div><h2 className="text-lg font-black text-blue-700">{ui.nextDate}</h2><div className="mt-1 text-3xl font-black text-slate-950">{cleanDraft.nextDate ? `${formatDate(cleanDraft.nextDate)} à 09:00` : labels.dateToEnter}</div></div></div></section><section className="rounded-[2rem] bg-white p-5 shadow-sm"><h2 className="mb-4 text-xl font-black text-emerald-700">✅ {ui.actions}</h2><div className="space-y-3"><Button className="w-full justify-between rounded-2xl bg-blue-700 py-5 text-base hover:bg-blue-800" onClick={() => actions.guide(cleanDraft)}>📘 {labels.guideStep} <span>›</span></Button><Button className="w-full justify-between rounded-2xl bg-emerald-700 py-5 text-base hover:bg-emerald-800" disabled={!canAddCalendar} onClick={() => actions.calendar(cleanDraft)}>📅 {cal.shortLabel} <span>›</span></Button><Button className="w-full justify-between rounded-2xl bg-orange-500 py-5 text-base hover:bg-orange-600" onClick={() => actions.done(cleanDraft.uid, cleanDraft)}>✅ {labels.doneButton} <span>›</span></Button></div></section><section className="rounded-[2rem] bg-white p-2 shadow-sm"><button type="button" onClick={() => actions.save(cleanDraft)} className="flex w-full items-center justify-between rounded-2xl px-4 py-4 text-left font-bold text-slate-900">✏️ {labels.save}<span>›</span></button><button type="button" onClick={() => actions.askDelete(cleanDraft.uid)} className="flex w-full items-center justify-between rounded-2xl px-4 py-4 text-left font-bold text-red-600">🗑 {labels.delete}<span>›</span></button></section><div className="rounded-3xl bg-blue-50 p-4 text-sm font-medium text-blue-900">🔔 {ui.autoOn}</div></div>;
+  return <div className="space-y-6"><Button variant="ghost" onClick={() => actions.setTab('home')}>← {labels.back}</Button><Card className="rounded-3xl"><CardContent className="p-6 sm:p-8"><div className="flex items-start gap-4"><div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-3xl bg-slate-100 text-4xl">{draft.icon}</div><div><h1 className="text-3xl font-bold">{draft.title}</h1><p className="mt-1 text-slate-600">{draft.short}</p></div></div><div className="mt-6 rounded-2xl bg-slate-50 p-4 text-sm text-slate-700"><div className="font-semibold">{labels.ruleApplied}</div><div className="mt-1">{c.timing}</div></div><div className="mt-6 space-y-4">{isTax && <div className="rounded-2xl border border-slate-200 bg-white p-4"><h3 className="font-bold text-slate-900">{tax.title}</h3><p className="mt-1 text-sm text-slate-600">{tax.help}</p><label className="mt-4 block space-y-2"><span className="text-sm font-medium text-slate-700">{tax.residence}</span><select value={draft.taxResidence || ''} onChange={(e) => updateTaxResidence(e.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3"><option value="">{tax.choose}</option><option value="france">{tax.france}</option><option value="etranger">{tax.abroad}</option></select></label>{draft.taxResidence === 'france' && <label className="mt-4 block space-y-2"><span className="text-sm font-medium text-slate-700">{tax.department}</span><input value={draft.taxDepartment || ''} inputMode="text" maxLength={3} placeholder={tax.departmentPlaceholder} onChange={(e) => updateTaxDepartment(e.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3" /></label>}{draft.taxResidence === 'etranger' && <div className="mt-4 rounded-xl bg-slate-50 p-3 text-sm text-slate-600">{tax.abroadHelp}</div>}<div className="mt-4 rounded-xl bg-blue-50 p-3 text-sm text-blue-950"><div className="font-semibold">{labels.nextReminder}</div><div className="mt-1">{taxDeadline ? formatDate(taxDeadline) : labels.dateToEnter}</div><div className="mt-1 text-xs opacity-80">{tax.dateHelp}</div></div></div>}{!isTax && (needsDate(draft) ? <label className="space-y-2 block"><span className="text-sm font-medium text-slate-700">{labels.dateToEnter}</span><input type="date" value={draft.nextDate} onChange={(e) => setDraft({ ...draft, nextDate: e.target.value })} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3" /></label> : <div className="rounded-2xl bg-white p-4 text-sm text-slate-700">{labels.dateAutoAfterDone}</div>)}<label className="flex items-center gap-3 rounded-xl border border-slate-300 bg-white px-3 py-3"><input type="checkbox" checked={draft.notifications !== false} onChange={(e) => setDraft({ ...draft, notifications: e.target.checked })} /><span className="text-sm font-medium text-slate-700">{labels.reminderEnabled}</span></label><label className="space-y-2 block"><span className="text-sm font-medium text-slate-700">{labels.note}</span><textarea value={draft.note || ''} onChange={(e) => setDraft({ ...draft, note: e.target.value })} rows={4} className="w-full resize-none rounded-xl border border-slate-300 bg-white px-3 py-3" /></label></div><div className="mt-6 grid grid-cols-1 gap-2 sm:grid-cols-4"><Button variant="default" className="py-6" onClick={() => actions.done(draft.uid, withImpotsAutoDate(draft))}>✅ {labels.doneButton}</Button><Button className="py-6" onClick={() => actions.save(withImpotsAutoDate(draft))}>💾 {labels.save}</Button>{draft.nextDate && !missingRequiredInfo(withImpotsAutoDate(draft)) && <Button variant="outline" className="py-6" onClick={() => actions.calendar(withImpotsAutoDate(draft))}>📅 {cal.shortLabel}</Button>}<Button variant="outline" className="py-6" onClick={() => actions.askDelete(draft.uid)}>🗑 {labels.delete}</Button></div></CardContent></Card></div>;
 }
 
-function MainApp() {
+export default function App() {
   const [state, setState] = useState(loadState);
   const [selectedUid, setSelectedUid] = useState(null);
   const [deleteUid, setDeleteUid] = useState(null);
@@ -1113,43 +998,5 @@ function MainApp() {
 
   if (!state.onboarded) return <Onboarding state={state} setState={setState} labels={labels} />;
 
-  return <div className="min-h-screen bg-slate-50 pb-24 text-slate-950 sm:pb-10"><Toast toast={state.toast} close={() => setState((s) => ({ ...s, toast: null }))} /><UpdateAvailableBanner show={Boolean(waitingWorker) && !updateDismissed} labels={labels} onUpdate={applyAppUpdate} onDismiss={() => setUpdateDismissed(true)} /><DeleteDialog item={deleteItem} labels={labels} cancel={actions.cancelDelete} confirm={actions.confirmDelete} /><CalendarDialog item={calendarItem} language={state.language} onClose={() => setCalendarItem(null)} /><Header labels={labels} actions={actions} /><main className="mx-auto max-w-6xl px-4 py-6"><Nav labels={labels} tab={state.tab} setTab={actions.setTab} language={state.language} />{state.tab === 'home' && <Home state={state} labels={labels} actions={actions} installProps={installProps} />}{state.tab === 'alerts' && <Alerts state={state} labels={labels} actions={actions} permission={permission} setPermission={setPermission} language={state.language} />}{state.tab === 'settings' && <Settings state={state} labels={labels} setState={setState} appUrl={appUrl} installProps={installProps} onRepair={repairApp} />}{state.tab === 'guides' && <Guides labels={labels} setTab={actions.setTab} language={state.language} selectedGuideId={selectedGuideId} openGuide={setSelectedGuideId} />}{state.tab === 'detail' && <Detail item={selected} labels={labels} actions={actions} language={state.language} />}</main><BottomNav labels={labels} tab={state.tab} setTab={actions.setTab} language={state.language} /></div>;
-}
-
-
-class AppErrorBoundary extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { error: null };
-  }
-
-  static getDerivedStateFromError(error) {
-    return { error };
-  }
-
-  async repairAndReload() {
-    try {
-      if ('caches' in window) {
-        const keys = await caches.keys();
-        await Promise.all(keys.map((key) => caches.delete(key)));
-      }
-      if ('serviceWorker' in navigator) {
-        const registrations = await navigator.serviceWorker.getRegistrations();
-        await Promise.all(registrations.map((registration) => registration.unregister().catch(() => null)));
-      }
-    } catch {}
-    window.location.reload();
-  }
-
-  render() {
-    if (this.state.error) {
-      return <div className="min-h-screen bg-slate-50 p-6 text-slate-950"><div className="mx-auto mt-10 max-w-xl rounded-3xl border border-red-100 bg-white p-6 shadow-sm"><div className="text-4xl">🛠️</div><h1 className="mt-4 text-2xl font-black">L’application doit être réparée</h1><p className="mt-2 text-slate-600">Une ancienne version ou un cache du téléphone bloque l’affichage. Appuyez sur le bouton ci-dessous pour vider le cache et recharger la dernière version.</p><button type="button" onClick={() => this.repairAndReload()} className="mt-5 w-full rounded-2xl bg-slate-900 px-4 py-4 font-bold text-white">Réparer et recharger</button><button type="button" onClick={() => window.location.reload()} className="mt-3 w-full rounded-2xl border border-slate-300 bg-white px-4 py-4 font-bold text-slate-900">Recharger seulement</button></div></div>;
-    }
-
-    return this.props.children;
-  }
-}
-
-export default function App() {
-  return <AppErrorBoundary><MainApp /></AppErrorBoundary>;
+  return <div className="min-h-screen bg-slate-50 pb-24 text-slate-950 sm:pb-10"><Toast toast={state.toast} close={() => setState((s) => ({ ...s, toast: null }))} /><UpdateAvailableBanner show={Boolean(waitingWorker) && !updateDismissed} labels={labels} onUpdate={applyAppUpdate} onDismiss={() => setUpdateDismissed(true)} /><DeleteDialog item={deleteItem} labels={labels} cancel={actions.cancelDelete} confirm={actions.confirmDelete} /><CalendarDialog item={calendarItem} language={state.language} onClose={() => setCalendarItem(null)} /><Header labels={labels} actions={actions} /><main className="mx-auto max-w-6xl px-4 py-6"><Nav labels={labels} tab={state.tab} setTab={actions.setTab} />{state.tab === 'home' && <Home state={state} labels={labels} actions={actions} installProps={installProps} />}{state.tab === 'alerts' && <Alerts state={state} labels={labels} actions={actions} permission={permission} setPermission={setPermission} />}{state.tab === 'settings' && <Settings state={state} labels={labels} setState={setState} appUrl={appUrl} installProps={installProps} onRepair={repairApp} />}{state.tab === 'guides' && <Guides labels={labels} setTab={actions.setTab} language={state.language} selectedGuideId={selectedGuideId} openGuide={setSelectedGuideId} />}{state.tab === 'detail' && <Detail item={selected} labels={labels} actions={actions} language={state.language} />}</main><BottomNav labels={labels} tab={state.tab} setTab={actions.setTab} /></div>;
 }
