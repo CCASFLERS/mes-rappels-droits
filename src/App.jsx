@@ -887,7 +887,7 @@ function Detail({ item, labels, actions, language }) {
   return <div className="space-y-5 pb-8"><Button variant="ghost" onClick={() => actions.setTab('home')}>← {labels.back}</Button><section className="rounded-[2rem] bg-white p-5 shadow-sm"><div className="flex items-center gap-5"><InstitutionBadge item={draft} /><div><h1 className="text-3xl font-black leading-tight text-slate-950">{draft.title}</h1><p className="mt-1 text-lg font-semibold text-orange-600">{draft.short}</p></div></div></section><section className="rounded-[2rem] bg-white p-5 shadow-sm"><div className="flex gap-4"><div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-orange-50 text-orange-700">i</div><div><h2 className="text-xl font-black text-orange-700">{ui.why}</h2><p className="mt-2 leading-relaxed text-slate-700">{c.timing}</p></div></div></section>{isTax && <section className="rounded-[2rem] bg-white p-5 shadow-sm"><h2 className="text-xl font-black text-slate-950">{tax.title}</h2><p className="mt-1 text-sm text-slate-600">{tax.help}</p><label className="mt-4 block space-y-2"><span className="text-sm font-bold text-slate-700">{tax.residence}</span><select value={draft.taxResidence || ''} onChange={(e) => updateTaxResidence(e.target.value)} className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3"><option value="">{tax.choose}</option><option value="france">{tax.france}</option><option value="etranger">{tax.abroad}</option></select></label>{draft.taxResidence === 'france' && <label className="mt-4 block space-y-2"><span className="text-sm font-bold text-slate-700">{tax.department}</span><input value={draft.taxDepartment || ''} inputMode="text" maxLength={3} placeholder={tax.departmentPlaceholder} onChange={(e) => updateTaxDepartment(e.target.value)} className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3" /></label>}{draft.taxResidence === 'etranger' && <div className="mt-4 rounded-2xl bg-slate-50 p-3 text-sm text-slate-600">{tax.abroadHelp}</div>}{taxDeadline && <div className="mt-4 rounded-2xl bg-blue-50 p-3 text-sm text-blue-950"><strong>{labels.officialMarker} :</strong> {formatDate(taxDeadline)}<div className="mt-1 text-xs opacity-80">{tax.dateHelp}</div></div>}</section>}{!isTax && needsDate(draft) && <section className="rounded-[2rem] bg-white p-5 shadow-sm"><label className="block space-y-2"><span className="text-sm font-bold text-slate-700">{labels.dateToEnter}</span><input type="date" value={draft.nextDate} onChange={(e) => setDraft({ ...draft, nextDate: e.target.value })} className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3" /></label></section>}<section className="rounded-[2rem] bg-white p-5 shadow-sm"><div className="flex gap-4"><div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white">📅</div><div><h2 className="text-lg font-black text-blue-700">{ui.nextDate}</h2><div className="mt-1 text-3xl font-black text-slate-950">{cleanDraft.nextDate ? `${formatDate(cleanDraft.nextDate)} à 09:00` : labels.dateToEnter}</div></div></div></section><section className="rounded-[2rem] bg-white p-5 shadow-sm"><h2 className="mb-4 text-xl font-black text-emerald-700">✅ {ui.actions}</h2><div className="space-y-3"><Button className="w-full justify-between rounded-2xl bg-blue-700 py-5 text-base hover:bg-blue-800" onClick={() => actions.guide(cleanDraft)}>📘 {labels.guideStep} <span>›</span></Button><Button className="w-full justify-between rounded-2xl bg-emerald-700 py-5 text-base hover:bg-emerald-800" disabled={!canAddCalendar} onClick={() => actions.calendar(cleanDraft)}>📅 {cal.shortLabel} <span>›</span></Button><Button className="w-full justify-between rounded-2xl bg-orange-500 py-5 text-base hover:bg-orange-600" onClick={() => actions.done(cleanDraft.uid, cleanDraft)}>✅ {labels.doneButton} <span>›</span></Button></div></section><section className="rounded-[2rem] bg-white p-2 shadow-sm"><button type="button" onClick={() => actions.save(cleanDraft)} className="flex w-full items-center justify-between rounded-2xl px-4 py-4 text-left font-bold text-slate-900">✏️ {labels.save}<span>›</span></button><button type="button" onClick={() => actions.askDelete(cleanDraft.uid)} className="flex w-full items-center justify-between rounded-2xl px-4 py-4 text-left font-bold text-red-600">🗑 {labels.delete}<span>›</span></button></section><div className="rounded-3xl bg-blue-50 p-4 text-sm font-medium text-blue-900">🔔 {ui.autoOn}</div></div>;
 }
 
-export default function App() {
+function MainApp() {
   const [state, setState] = useState(loadState);
   const [selectedUid, setSelectedUid] = useState(null);
   const [deleteUid, setDeleteUid] = useState(null);
@@ -1114,4 +1114,42 @@ export default function App() {
   if (!state.onboarded) return <Onboarding state={state} setState={setState} labels={labels} />;
 
   return <div className="min-h-screen bg-slate-50 pb-24 text-slate-950 sm:pb-10"><Toast toast={state.toast} close={() => setState((s) => ({ ...s, toast: null }))} /><UpdateAvailableBanner show={Boolean(waitingWorker) && !updateDismissed} labels={labels} onUpdate={applyAppUpdate} onDismiss={() => setUpdateDismissed(true)} /><DeleteDialog item={deleteItem} labels={labels} cancel={actions.cancelDelete} confirm={actions.confirmDelete} /><CalendarDialog item={calendarItem} language={state.language} onClose={() => setCalendarItem(null)} /><Header labels={labels} actions={actions} /><main className="mx-auto max-w-6xl px-4 py-6"><Nav labels={labels} tab={state.tab} setTab={actions.setTab} language={state.language} />{state.tab === 'home' && <Home state={state} labels={labels} actions={actions} installProps={installProps} />}{state.tab === 'alerts' && <Alerts state={state} labels={labels} actions={actions} permission={permission} setPermission={setPermission} language={state.language} />}{state.tab === 'settings' && <Settings state={state} labels={labels} setState={setState} appUrl={appUrl} installProps={installProps} onRepair={repairApp} />}{state.tab === 'guides' && <Guides labels={labels} setTab={actions.setTab} language={state.language} selectedGuideId={selectedGuideId} openGuide={setSelectedGuideId} />}{state.tab === 'detail' && <Detail item={selected} labels={labels} actions={actions} language={state.language} />}</main><BottomNav labels={labels} tab={state.tab} setTab={actions.setTab} language={state.language} /></div>;
+}
+
+
+class AppErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { error };
+  }
+
+  async repairAndReload() {
+    try {
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((key) => caches.delete(key)));
+      }
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations.map((registration) => registration.unregister().catch(() => null)));
+      }
+    } catch {}
+    window.location.reload();
+  }
+
+  render() {
+    if (this.state.error) {
+      return <div className="min-h-screen bg-slate-50 p-6 text-slate-950"><div className="mx-auto mt-10 max-w-xl rounded-3xl border border-red-100 bg-white p-6 shadow-sm"><div className="text-4xl">🛠️</div><h1 className="mt-4 text-2xl font-black">L’application doit être réparée</h1><p className="mt-2 text-slate-600">Une ancienne version ou un cache du téléphone bloque l’affichage. Appuyez sur le bouton ci-dessous pour vider le cache et recharger la dernière version.</p><button type="button" onClick={() => this.repairAndReload()} className="mt-5 w-full rounded-2xl bg-slate-900 px-4 py-4 font-bold text-white">Réparer et recharger</button><button type="button" onClick={() => window.location.reload()} className="mt-3 w-full rounded-2xl border border-slate-300 bg-white px-4 py-4 font-bold text-slate-900">Recharger seulement</button></div></div>;
+    }
+
+    return this.props.children;
+  }
+}
+
+export default function App() {
+  return <AppErrorBoundary><MainApp /></AppErrorBoundary>;
 }
