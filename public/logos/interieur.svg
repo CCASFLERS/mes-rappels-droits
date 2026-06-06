@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
+  <rect width="180" height="180" rx="28" fill="#f8fafc"/>
+  <rect x="42" y="32" width="96" height="70" rx="10" fill="#1d4ed8"/>
+  <rect x="52" y="44" width="76" height="46" rx="6" fill="#fff"/>
+  <path d="M52 44h76v14H52z" fill="#e11d48"/>
+  <path d="M62 74h28M62 84h48" stroke="#1d4ed8" stroke-width="5" stroke-linecap="round"/>
+  <text x="90" y="132" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="800" fill="#0f172a">TITRE</text>
+  <text x="90" y="151" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="800" fill="#0f172a">DE SÉJOUR</text>
+</svg>
