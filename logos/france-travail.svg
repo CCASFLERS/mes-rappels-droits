@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 120">
+  <rect width="220" height="120" rx="24" fill="#fff"/>
+  <g transform="translate(22 18)">
+    <circle cx="40" cy="42" r="18" fill="#14a3dd"/>
+    <circle cx="17" cy="42" r="10" fill="#24366f"/>
+    <circle cx="62" cy="42" r="10" fill="#24366f"/>
+    <circle cx="40" cy="17" r="10" fill="#14a3dd"/>
+    <circle cx="40" cy="68" r="10" fill="#24366f"/>
+    <circle cx="23" cy="23" r="7" fill="#e94c97"/>
+    <circle cx="58" cy="23" r="7" fill="#f2d40f"/>
+    <circle cx="23" cy="62" r="7" fill="#e30613"/>
+    <circle cx="59" cy="62" r="7" fill="#24366f"/>
+    <circle cx="75" cy="38" r="5" fill="#e30613"/>
+    <circle cx="8" cy="38" r="5" fill="#14a3dd"/>
+  </g>
+  <text x="105" y="52" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#24366f">France</text>
+  <text x="105" y="82" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#24366f">Travail</text>
+</svg>
