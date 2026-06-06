@@ -815,12 +815,20 @@ function InstallPanel({ labels, deferredInstallPrompt, standalone, platform, onI
 
 function Home({ state, labels, actions, installProps }) {
   const ui = visualTextFor(state.language);
-  const activeItems = state.items.filter(showAsTodo).filter((item) => item.nextDate && !missingRequiredInfo(item)).sort((a, b) => parseDate(a.nextDate) - parseDate(b.nextDate));
+  const activeItems = state.items
+    .filter(showAsTodo)
+    .sort((a, b) => {
+      const aMissing = missingRequiredInfo(a) ? 0 : 1;
+      const bMissing = missingRequiredInfo(b) ? 0 : 1;
+      if (aMissing !== bMissing) return aMissing - bMissing;
+      return (parseDate(a.nextDate || '2999-12-31') || new Date(2999, 11, 31)) - (parseDate(b.nextDate || '2999-12-31') || new Date(2999, 11, 31));
+    });
   const featured = activeItems[0] || null;
-  const upcoming = activeItems.filter((item) => !featured || item.uid !== featured.uid).slice(0, 3);
+  const featuredMissing = featured ? missingRequiredInfo(featured) : false;
+  const upcoming = activeItems.filter((item) => !featured || item.uid !== featured.uid).filter((item) => item.nextDate && !missingRequiredInfo(item)).slice(0, 3);
   const done = state.items.filter((i) => i.completedOnce).sort((a, b) => parseDate(b.lastAction) - parseDate(a.lastAction)).slice(0, 3);
 
-  return <div className="relative space-y-6 pb-8">{(!installProps.standalone || installProps.permission !== 'granted') && <InstallPanel labels={labels} {...installProps} />}{featured ? <section className="relative overflow-hidden rounded-[2rem] border border-orange-100 bg-gradient-to-br from-orange-50 via-white to-blue-50 p-5 shadow-xl shadow-orange-100/40 ring-1 ring-white/80"><div className="pointer-events-none absolute -right-6 top-8 hidden h-36 w-36 rotate-6 items-center justify-center rounded-[2rem] bg-white/70 text-7xl shadow-lg sm:flex">🗓️</div><div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-orange-200/40 blur-2xl" /><div className="pointer-events-none absolute -bottom-12 left-10 h-28 w-28 rounded-full bg-blue-200/30 blur-2xl" /><div className="relative mb-4 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-orange-500 to-orange-400 px-4 py-2 text-sm font-black text-white shadow-lg shadow-orange-500/20">🔔 {ui.next}</div><div className="relative flex items-center gap-5"><InstitutionLogo item={featured} size="lg" /><div className="min-w-0 flex-1 sm:pr-28"><h1 className="text-3xl font-black leading-tight tracking-tight text-slate-950">{featured.title}</h1><div className="mt-3"><StatusBadge item={featured} language={state.language} /></div><div className="mt-4 flex items-center gap-2 text-2xl font-black text-slate-950">📅 {formatDate(featured.nextDate)}</div></div></div><div className="relative mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2"><Button variant="outline" className="py-5 text-base shadow-sm" onClick={() => actions.guide(featured)}>📘 {labels.guideStep}</Button><Button variant="default" className="py-5 bg-gradient-to-r from-orange-600 to-orange-500 text-base shadow-lg shadow-orange-500/20 hover:from-orange-700 hover:to-orange-600" onClick={() => actions.done(featured.uid)}>✅ {labels.doneButton}</Button></div></section> : <section className="rounded-[2rem] border border-dashed border-blue-200 bg-white/90 p-8 text-center shadow-sm ring-1 ring-white"><div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 text-3xl">✅</div><h1 className="text-2xl font-black text-slate-950">{labels.nothingToDo}</h1><p className="mt-2 text-slate-500">{labels.emptyTodo}</p><p className="mt-2 text-sm font-medium text-blue-700">Les rappels déjà enregistrés restent visibles dans “Mes dates”.</p><div className="mt-5"><AddMenu actions={actions} labels={labels} /></div></section>}<section><div className="mb-3 flex items-center justify-between"><h2 className="flex items-center gap-2 text-xl font-black text-slate-950">📅 {ui.upcoming}</h2><button type="button" onClick={() => actions.setTab('alerts')} className="rounded-full bg-blue-50 px-3 py-2 text-sm font-black text-blue-700">{ui.seeAll} ›</button></div><div className="space-y-3">{upcoming.length ? upcoming.map((item) => <ReminderMiniCard key={item.uid} item={item} actions={actions} language={state.language} />) : <p className="rounded-3xl bg-white/90 p-5 text-sm text-slate-500 shadow-sm ring-1 ring-white">{labels.emptyTodo}</p>}</div></section><section className="rounded-[2rem] border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-4 shadow-sm"><h2 className="mb-3 flex items-center gap-2 text-xl font-black text-emerald-900">✅ {ui.recorded}</h2><div className="space-y-2">{done.length ? done.map((item) => <DoneMiniCard key={item.uid} item={item} actions={actions} />) : <p className="rounded-2xl bg-white/80 p-4 text-sm text-slate-500">{labels.emptyDone}</p>}</div></section><div className="fixed bottom-20 right-4 z-20 sm:hidden"><AddMenu actions={actions} labels={{ ...labels, addAction: ui.addReminder }} compact /></div></div>;
+  return <div className="relative space-y-6 pb-8">{(!installProps.standalone || installProps.permission !== 'granted') && <InstallPanel labels={labels} {...installProps} />}{featured ? <section className="relative overflow-hidden rounded-[2rem] border border-orange-100 bg-gradient-to-br from-orange-50 via-white to-blue-50 p-5 shadow-xl shadow-orange-100/40 ring-1 ring-white/80"><div className="pointer-events-none absolute -right-6 top-8 hidden h-36 w-36 rotate-6 items-center justify-center rounded-[2rem] bg-white/70 text-7xl shadow-lg sm:flex">🗓️</div><div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-orange-200/40 blur-2xl" /><div className="pointer-events-none absolute -bottom-12 left-10 h-28 w-28 rounded-full bg-blue-200/30 blur-2xl" /><div className="relative mb-4 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-orange-500 to-orange-400 px-4 py-2 text-sm font-black text-white shadow-lg shadow-orange-500/20">🔔 {ui.next}</div><div className="relative flex items-center gap-5"><InstitutionLogo item={featured} size="lg" /><div className="min-w-0 flex-1 sm:pr-28"><h1 className="text-3xl font-black leading-tight tracking-tight text-slate-950">{featured.title}</h1><div className="mt-3"><StatusBadge item={featured} language={state.language} /></div><div className="mt-4 flex items-center gap-2 text-2xl font-black text-slate-950">📅 {featured.nextDate ? formatDate(featured.nextDate) : labels.dateToEnter}</div></div></div><div className="relative mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2"><Button variant="outline" className="py-5 text-base shadow-sm" onClick={() => actions.guide(featured)}>📘 {labels.guideStep}</Button>{featuredMissing ? <Button variant="default" className="py-5 bg-gradient-to-r from-blue-700 to-blue-500 text-base shadow-lg shadow-blue-500/20 hover:from-blue-800 hover:to-blue-600" onClick={() => actions.edit(featured)}>📅 {labels.dateToEnter}</Button> : <Button variant="default" className="py-5 bg-gradient-to-r from-orange-600 to-orange-500 text-base shadow-lg shadow-orange-500/20 hover:from-orange-700 hover:to-orange-600" onClick={() => actions.done(featured.uid)}>✅ {labels.doneButton}</Button>}</div></section> : <section className="rounded-[2rem] border border-dashed border-blue-200 bg-white/90 p-8 text-center shadow-sm ring-1 ring-white"><div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 text-3xl">✅</div><h1 className="text-2xl font-black text-slate-950">{labels.nothingToDo}</h1><p className="mt-2 text-slate-500">{labels.emptyTodo}</p><p className="mt-2 text-sm font-medium text-blue-700">Les rappels déjà enregistrés restent visibles dans “Mes dates”.</p><div className="mt-5"><AddMenu actions={actions} labels={labels} /></div></section>}<section><div className="mb-3 flex items-center justify-between"><h2 className="flex items-center gap-2 text-xl font-black text-slate-950">📅 {ui.upcoming}</h2><button type="button" onClick={() => actions.setTab('alerts')} className="rounded-full bg-blue-50 px-3 py-2 text-sm font-black text-blue-700">{ui.seeAll} ›</button></div><div className="space-y-3">{upcoming.length ? upcoming.map((item) => <ReminderMiniCard key={item.uid} item={item} actions={actions} language={state.language} />) : <p className="rounded-3xl bg-white/90 p-5 text-sm text-slate-500 shadow-sm ring-1 ring-white">{labels.emptyTodo}</p>}</div></section><section className="rounded-[2rem] border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-4 shadow-sm"><h2 className="mb-3 flex items-center gap-2 text-xl font-black text-emerald-900">✅ {ui.recorded}</h2><div className="space-y-2">{done.length ? done.map((item) => <DoneMiniCard key={item.uid} item={item} actions={actions} />) : <p className="rounded-2xl bg-white/80 p-4 text-sm text-slate-500">{labels.emptyDone}</p>}</div></section><div className="fixed bottom-20 right-4 z-20 sm:hidden"><AddMenu actions={actions} labels={{ ...labels, addAction: ui.addReminder }} compact /></div></div>;
 }
 
 function Alerts({ state, labels, actions, permission, setPermission, language = 'fr' }) {
@@ -1051,12 +1059,38 @@ export default function App() {
 
   const actions = {
     setTab: (tab) => setState((s) => ({ ...s, tab })),
-    add: (catalogId) => setState((s) => {
+    add: (catalogId) => {
       const c = CATALOG.find((x) => x.id === catalogId);
-      if (!c) return s;
-      if (catalogId !== 'custom' && s.items.some((i) => i.catalogId === catalogId)) return { ...s, toast: { title: labels.alreadyAdded, body: c.title } };
-      return { ...s, tab: 'home', items: [makeItem(catalogId), ...s.items], toast: { title: labels.saved, body: c.title } };
-    }),
+      if (!c) return;
+
+      const existing = catalogId !== 'custom' ? state.items.find((i) => i.catalogId === catalogId) : null;
+      if (existing) {
+        setSelectedUid(existing.uid);
+        setState((s) => ({
+          ...s,
+          tab: 'detail',
+          toast: { title: labels.alreadyAdded, body: `${c.title} — ${labels.rectify}` },
+        }));
+        return;
+      }
+
+      const newItem = makeItem(catalogId);
+      const mustComplete = missingRequiredInfo(newItem);
+
+      if (mustComplete) {
+        setSelectedUid(newItem.uid);
+      }
+
+      setState((s) => ({
+        ...s,
+        tab: mustComplete ? 'detail' : 'home',
+        items: [newItem, ...s.items],
+        toast: {
+          title: mustComplete ? labels.dateToEnter : labels.saved,
+          body: c.title,
+        },
+      }));
+    },
     done: (uid, draft = null) => {
       const existing = state.items.find((i) => i.uid === uid);
       const item = normalizeItem({ ...(existing || {}), ...(draft || {}) });
