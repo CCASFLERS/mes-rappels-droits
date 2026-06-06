@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
-  <rect width="180" height="180" rx="28" fill="#eef2ff"/>
-  <path d="M46 86l44-38 44 38v54H46V86z" fill="#4f46e5"/>
-  <rect x="78" y="105" width="24" height="35" rx="3" fill="#fff"/>
-  <rect x="61" y="88" width="16" height="16" rx="2" fill="#c7d2fe"/>
-  <rect x="103" y="88" width="16" height="16" rx="2" fill="#c7d2fe"/>
-  <text x="90" y="160" text-anchor="middle" font-family="Arial, sans-serif" font-size="17" font-weight="800" fill="#3730a3">LOGEMENT</text>
-</svg>

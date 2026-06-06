@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
-  <rect width="180" height="180" rx="28" fill="#eaf7ff"/>
-  <circle cx="90" cy="72" r="42" fill="#009ee0"/>
-  <path d="M60 75c14 18 43 18 60 0" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round"/>
-  <text x="90" y="136" text-anchor="middle" font-family="Arial, sans-serif" font-size="32" font-weight="800" fill="#005ca9">ameli</text>
-</svg>
