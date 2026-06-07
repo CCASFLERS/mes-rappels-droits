@@ -427,6 +427,13 @@ function impotsReminderStartDate(year) {
   // on relance la personne dès mi-avril pour vérifier le calendrier officiel.
   return `${year}-04-15`;
 }
+function impotsAutomaticReminderDate(from = todayISO()) {
+  const d = parseDate(from) || parseDate(todayISO());
+  const y = Math.max(2026, d.getFullYear());
+  const thisYearStart = impotsReminderStartDate(y);
+  if (d <= (parseDate(thisYearStart) || d)) return thisYearStart;
+  return impotsReminderStartDate(y + 1);
+}
 function normalizeTaxDepartment(value) {
   return String(value || '').trim().toUpperCase().replace(/\s+/g, '');
 }
@@ -481,46 +488,74 @@ function impotsNextReminderAfterRecording(item, from = todayISO()) {
 }
 function withImpotsAutoDate(item) {
   if (!item || item.rule !== 'impots_revenus') return item;
-
-  // Si la démarche impôts a déjà été validée, on garde le prochain rappel annuel
-  // déjà calculé, même si les informations de résidence ne sont plus affichées
-  // ou si l'année officielle suivante n'est pas encore connue.
   if (item.completedOnce && item.nextDate) return item;
-
-  const firstReminder = impotsFirstReminderForLocation(item);
-  return firstReminder ? { ...item, nextDate: firstReminder } : { ...item, nextDate: '' };
+  return { ...item, nextDate: item.nextDate || impotsAutomaticReminderDate() };
 }
-function nextAfterDone(item, from = todayISO()) { const rule = item.rule; if (rule === 'france_travail') return franceTravailNextDeadlineAfterDone(from); if (rule === 'caf_quarterly') return addMonths(from, 3); if (['css_sante', 'ame', 'logement_social', 'mdph_long', 'titre_sejour'].includes(rule)) return addMonths(from, 12); if (rule === 'custom') return item.nextDate || addMonths(from, 1); return addMonths(from, 1); }
+function nextAfterDone(item, from = todayISO()) {
+  const rule = item.rule;
+  if (rule === 'france_travail') return franceTravailNextDeadlineAfterDone(from);
+  if (rule === 'caf_quarterly') return addMonths(from, 3);
+  if (rule === 'mdph_long') return addMonths(from, 12);
+  if (['titre_sejour', 'css_sante', 'ame', 'logement_social'].includes(rule)) return addMonths(from, 12);
+  if (rule === 'custom') return item.nextDate || addDays(from, 30);
+  return addMonths(from, 1);
+}
 function nextDateAfterRecording(item) {
-  if (item.rule === 'custom') return item.nextDate || todayISO();
+  if (item.rule === 'custom') return item.nextDate || addDays(todayISO(), 30);
   if (item.rule === 'impots_revenus') {
-    return impotsNextReminderAfterRecording(item);
+    return impotsAutomaticReminderDate(addDays(todayISO(), 1));
   }
   return nextAfterDone(item);
 }
 function impotsResidenceComplete(item) {
-  if (item.rule !== 'impots_revenus') return true;
-  return Boolean(impotsDeadlineForLocation(item));
+  return true;
 }
 function missingRequiredInfo(item) {
+  // Simplicité voulue : aucune démarche standard ne bloque sur une date à saisir.
+  // La personne ajoute la démarche, puis clique sur “Oui, enregistrer” :
+  // l'application calcule automatiquement le prochain rappel selon la règle.
   if (!item) return true;
-  if (item.rule === 'impots_revenus') {
-    if (item.completedOnce && item.nextDate) return false;
-    return !impotsDeadlineForLocation(item);
-  }
-  if (needsDate(item) && !item.nextDate) return true;
   return false;
 }
 function suggestedDate(catalog, from = todayISO()) {
   if (catalog.rule === 'france_travail') return franceTravailCurrentDeadline(from);
   if (catalog.rule === 'caf_quarterly') return addMonths(from, 3);
-  if (catalog.rule === 'titre_sejour' || catalog.rule === 'impots_revenus') return '';
-  if (catalog.rule === 'mdph_long') return addDays(from, 180);
-  if (['css_sante', 'ame', 'logement_social'].includes(catalog.rule)) return addMonths(from, 12);
+  if (catalog.rule === 'impots_revenus') return impotsAutomaticReminderDate(from);
+  if (['titre_sejour', 'css_sante', 'ame', 'logement_social', 'mdph_long'].includes(catalog.rule)) return addMonths(from, 12);
   return addDays(from, 30);
 }
 function needsDate(item) {
-  return ['titre_sejour', 'css_sante', 'ame', 'logement_social', 'mdph_long', 'custom'].includes(item.rule);
+  // Seul “Autre rappel” garde une date modifiable, sans bloquer l'ajout.
+  return item?.rule === 'custom';
+}
+function dateInputLabel(item, labels) {
+  if (!item) return labels.dateToEnter;
+  if (item.rule === 'custom') return 'Date du rappel';
+  if (item.rule === 'titre_sejour') return 'Date de fin de validité';
+  if (item.rule === 'css_sante' || item.rule === 'ame') return 'Date de fin des droits';
+  if (item.rule === 'logement_social') return 'Date limite / date anniversaire';
+  if (item.rule === 'mdph_long') return 'Date de fin des droits MDPH';
+  return labels.dateToEnter;
+}
+function dateInputHelp(item) {
+  if (!item) return '';
+  if (item.rule === 'custom') return 'Choisissez la date à laquelle la personne doit recevoir le rappel.';
+  if (item.rule === 'titre_sejour') return 'Renseignez la fin de validité : l’application calculera les rappels 4 mois, 3 mois, 2 mois et 15 jours avant.';
+  if (item.rule === 'css_sante') return 'Renseignez la fin des droits CSS : l’application anticipera le renouvellement entre 4 et 2 mois avant.';
+  if (item.rule === 'ame') return 'Renseignez la fin des droits AME : l’application anticipera le renouvellement dans les 2 mois avant.';
+  if (item.rule === 'logement_social') return 'Renseignez la date de renouvellement ou la date anniversaire : l’application rappellera avant l’échéance.';
+  if (item.rule === 'mdph_long') return 'Renseignez la fin des droits : l’application rappellera plusieurs mois avant.';
+  return 'Cette date sert de référence : les rappels sont ensuite calculés automatiquement.';
+}
+function firstReminderDateForItem(item) {
+  if (!item || !item.nextDate || missingRequiredInfo(item)) return item?.nextDate || '';
+  const alerts = upcomingAlerts([item]);
+  if (alerts && alerts.length) return alerts[0].reminderDate;
+  return item.nextDate;
+}
+function displayDateForItem(item) {
+  if (!item) return '';
+  return item.calendarDate || item.reminderDate || firstReminderDateForItem(item) || item.nextDate || '';
 }
 function showAsTodo(item) {
   if (missingRequiredInfo(item)) return true;
@@ -529,9 +564,10 @@ function showAsTodo(item) {
   // une fois enregistrés, ils ne doivent pas rester dans “À faire maintenant”.
   if (item.rule === 'custom' && item.completedOnce) return false;
 
-  // Les autres démarches récurrentes réapparaissent automatiquement
-  // quand la prochaine échéance approche.
-  return !item.completedOnce || statusOf(item.nextDate) !== 'ok';
+  // Les démarches récurrentes réapparaissent quand le PREMIER rappel anticipé approche,
+  // pas seulement à la date anniversaire ou à la date limite.
+  const reminderDate = firstReminderDateForItem(item) || item.nextDate;
+  return !item.completedOnce || statusOf(reminderDate) !== 'ok';
 }
 function makeItem(catalogId) { const c = CATALOG.find((x) => x.id === catalogId) || CATALOG[0]; return { uid: `${c.id}-${Date.now()}-${Math.random().toString(16).slice(2)}`, catalogId: c.id, rule: c.rule, title: c.title, short: c.short, cat: c.cat, icon: c.icon, nextDate: suggestedDate(c), lastAction: '', note: '', notifications: true, completedOnce: false, taxResidence: '', taxDepartment: '' }; }
 function normalizeItem(item) { const c = catalogFor(item); return withImpotsAutoDate({ ...makeItem(c.id), ...item, rule: item.rule || c.rule, title: item.title || c.title, short: item.short || c.short, cat: item.cat || c.cat, icon: item.icon || c.icon }); }
@@ -619,13 +655,15 @@ function escapeIcsText(value) {
     .replace(/,/g, '\\,');
 }
 function calendarEventFor(item, ui) {
-  if (!item || !item.nextDate) return null;
-  const start = toCalendarDate(item.nextDate, 9, 0);
+  const reminderDate = displayDateForItem(item);
+  if (!item || !reminderDate) return null;
+  const start = toCalendarDate(reminderDate, 9, 0);
   if (!start) return null;
   const end = new Date(start.getTime() + 30 * 60 * 1000);
   const title = `${ui.eventPrefix} ${item.title}`;
   const appUrl = typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}` : '';
-  const details = `${ui.description}${appUrl ? '\n' + appUrl : ''}`;
+  const reference = item.nextDate && item.nextDate !== reminderDate ? `\nÉchéance / date de référence : ${formatDate(item.nextDate)}` : '';
+  const details = `${ui.description}${reference}${appUrl ? '\n' + appUrl : ''}`;
   return { title, details, start, end, location: '', uid: `${item.uid || item.catalogId || 'rappel'}-${formatCalendarDateLocal(start)}@mes-rappels-droits` };
 }
 function googleCalendarUrl(event) {
@@ -757,8 +795,9 @@ function sortedReminderItems(items) {
 }
 
 function reminderTone(item) {
-  if (!item?.nextDate) return 'ok';
-  const d = daysUntil(item.nextDate);
+  const date = displayDateForItem(item);
+  if (!date) return 'ok';
+  const d = daysUntil(date);
   if (d < 0) return 'late';
   if (d <= 10) return 'soon';
   return 'ok';
@@ -773,7 +812,8 @@ function StatusBadge({ item, language, done = false }) {
 }
 
 function ReminderMiniCard({ item, actions, language }) {
-  return <button type="button" onClick={() => actions.edit(item)} className="flex w-full items-center gap-4 rounded-3xl border border-white bg-white/95 p-3 text-left shadow-sm ring-1 ring-slate-100/70 transition hover:-translate-y-0.5 hover:bg-blue-50/40 hover:shadow-md"><InstitutionLogo item={item} size="sm" /><div className="min-w-0 flex-1"><div className="font-black text-slate-950">{item.title}</div><div className="mt-1 text-sm text-slate-500">📅 {formatDate(item.nextDate)}</div></div><div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-2xl text-blue-700">›</div></button>;
+  const date = displayDateForItem(item);
+  return <button type="button" onClick={() => actions.edit(item)} className="flex w-full items-center gap-4 rounded-3xl border border-white bg-white/95 p-3 text-left shadow-sm ring-1 ring-slate-100/70 transition hover:-translate-y-0.5 hover:bg-blue-50/40 hover:shadow-md"><InstitutionLogo item={item} size="sm" /><div className="min-w-0 flex-1"><div className="font-black text-slate-950">{item.title}</div><div className="mt-1 text-sm text-slate-500">📅 {formatDate(date)}</div>{item.nextDate && item.nextDate !== date && <div className="mt-0.5 text-xs text-slate-400">Échéance : {formatDate(item.nextDate)}</div>}</div><div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-2xl text-blue-700">›</div></button>;
 }
 
 function DoneMiniCard({ item, actions }) {
@@ -782,9 +822,10 @@ function DoneMiniCard({ item, actions }) {
 
 function TimelineItem({ item, actions, language }) {
   const tone = reminderTone(item);
+  const date = displayDateForItem(item);
   const color = tone === 'late' ? 'bg-red-500' : tone === 'soon' ? 'bg-orange-500' : 'bg-emerald-500';
   const textColor = tone === 'late' ? 'text-red-600' : tone === 'soon' ? 'text-orange-600' : 'text-emerald-600';
-  return <div className="relative flex gap-3"><div className="flex w-6 flex-col items-center"><span className={`mt-8 h-4 w-4 rounded-full ring-4 ring-white ${color}`} /><span className="mt-1 h-full w-px bg-slate-200" /></div><div className="mb-4 flex-1 rounded-3xl border border-slate-100 bg-white p-4 shadow-sm"><div className="flex items-center gap-3"><InstitutionLogo item={item} size="sm" /><div className="min-w-0 flex-1"><div className={`font-black ${textColor}`}>{formatDate(item.nextDate)}</div><div className="text-lg font-black text-slate-950">{item.title}</div><div className="mt-1"><StatusBadge item={item} language={language} /></div></div><Button variant="outline" onClick={() => actions.edit(item)}>{visualTextFor(language).view}</Button></div></div></div>;
+  return <div className="relative flex gap-3"><div className="flex w-6 flex-col items-center"><span className={`mt-8 h-4 w-4 rounded-full ring-4 ring-white ${color}`} /><span className="mt-1 h-full w-px bg-slate-200" /></div><div className="mb-4 flex-1 rounded-3xl border border-slate-100 bg-white p-4 shadow-sm"><div className="flex items-center gap-3"><InstitutionLogo item={item} size="sm" /><div className="min-w-0 flex-1"><div className={`font-black ${textColor}`}>{formatDate(date)}</div><div className="text-lg font-black text-slate-950">{item.title}</div>{item.label && <div className="text-xs font-semibold text-slate-500">{item.label}</div>}<div className="mt-1"><StatusBadge item={item} language={language} /></div>{item.nextDate && item.nextDate !== date && <div className="mt-1 text-xs text-slate-400">Échéance : {formatDate(item.nextDate)}</div>}</div><Button variant="outline" onClick={() => actions.edit(item)}>{visualTextFor(language).view}</Button></div></div></div>;
 }
 
 
@@ -821,23 +862,25 @@ function Home({ state, labels, actions, installProps }) {
       const aMissing = missingRequiredInfo(a) ? 0 : 1;
       const bMissing = missingRequiredInfo(b) ? 0 : 1;
       if (aMissing !== bMissing) return aMissing - bMissing;
-      return (parseDate(a.nextDate || '2999-12-31') || new Date(2999, 11, 31)) - (parseDate(b.nextDate || '2999-12-31') || new Date(2999, 11, 31));
+      const ad = displayDateForItem(a) || '2999-12-31';
+      const bd = displayDateForItem(b) || '2999-12-31';
+      return (parseDate(ad) || new Date(2999, 11, 31)) - (parseDate(bd) || new Date(2999, 11, 31));
     });
   const featured = activeItems[0] || null;
   const featuredMissing = featured ? missingRequiredInfo(featured) : false;
   const upcoming = activeItems.filter((item) => !featured || item.uid !== featured.uid).filter((item) => item.nextDate && !missingRequiredInfo(item)).slice(0, 3);
   const done = state.items.filter((i) => i.completedOnce).sort((a, b) => parseDate(b.lastAction) - parseDate(a.lastAction)).slice(0, 3);
 
-  return <div className="relative space-y-6 pb-8">{(!installProps.standalone || installProps.permission !== 'granted') && <InstallPanel labels={labels} {...installProps} />}{featured ? <section className="relative overflow-hidden rounded-[2rem] border border-orange-100 bg-gradient-to-br from-orange-50 via-white to-blue-50 p-5 shadow-xl shadow-orange-100/40 ring-1 ring-white/80"><div className="pointer-events-none absolute -right-6 top-8 hidden h-36 w-36 rotate-6 items-center justify-center rounded-[2rem] bg-white/70 text-7xl shadow-lg sm:flex">🗓️</div><div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-orange-200/40 blur-2xl" /><div className="pointer-events-none absolute -bottom-12 left-10 h-28 w-28 rounded-full bg-blue-200/30 blur-2xl" /><div className="relative mb-4 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-orange-500 to-orange-400 px-4 py-2 text-sm font-black text-white shadow-lg shadow-orange-500/20">🔔 {ui.next}</div><div className="relative flex items-center gap-5"><InstitutionLogo item={featured} size="lg" /><div className="min-w-0 flex-1 sm:pr-28"><h1 className="text-3xl font-black leading-tight tracking-tight text-slate-950">{featured.title}</h1><div className="mt-3"><StatusBadge item={featured} language={state.language} /></div><div className="mt-4 flex items-center gap-2 text-2xl font-black text-slate-950">📅 {featured.nextDate ? formatDate(featured.nextDate) : labels.dateToEnter}</div></div></div><div className="relative mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2"><Button variant="outline" className="py-5 text-base shadow-sm" onClick={() => actions.guide(featured)}>📘 {labels.guideStep}</Button>{featuredMissing ? <Button variant="default" className="py-5 bg-gradient-to-r from-blue-700 to-blue-500 text-base shadow-lg shadow-blue-500/20 hover:from-blue-800 hover:to-blue-600" onClick={() => actions.edit(featured)}>📅 {labels.dateToEnter}</Button> : <Button variant="default" className="py-5 bg-gradient-to-r from-orange-600 to-orange-500 text-base shadow-lg shadow-orange-500/20 hover:from-orange-700 hover:to-orange-600" onClick={() => actions.done(featured.uid)}>✅ {labels.doneButton}</Button>}</div></section> : <section className="rounded-[2rem] border border-dashed border-blue-200 bg-white/90 p-8 text-center shadow-sm ring-1 ring-white"><div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 text-3xl">✅</div><h1 className="text-2xl font-black text-slate-950">{labels.nothingToDo}</h1><p className="mt-2 text-slate-500">{labels.emptyTodo}</p><p className="mt-2 text-sm font-medium text-blue-700">Les rappels déjà enregistrés restent visibles dans “Mes dates”.</p><div className="mt-5"><AddMenu actions={actions} labels={labels} /></div></section>}<section><div className="mb-3 flex items-center justify-between"><h2 className="flex items-center gap-2 text-xl font-black text-slate-950">📅 {ui.upcoming}</h2><button type="button" onClick={() => actions.setTab('alerts')} className="rounded-full bg-blue-50 px-3 py-2 text-sm font-black text-blue-700">{ui.seeAll} ›</button></div><div className="space-y-3">{upcoming.length ? upcoming.map((item) => <ReminderMiniCard key={item.uid} item={item} actions={actions} language={state.language} />) : <p className="rounded-3xl bg-white/90 p-5 text-sm text-slate-500 shadow-sm ring-1 ring-white">{labels.emptyTodo}</p>}</div></section><section className="rounded-[2rem] border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-4 shadow-sm"><h2 className="mb-3 flex items-center gap-2 text-xl font-black text-emerald-900">✅ {ui.recorded}</h2><div className="space-y-2">{done.length ? done.map((item) => <DoneMiniCard key={item.uid} item={item} actions={actions} />) : <p className="rounded-2xl bg-white/80 p-4 text-sm text-slate-500">{labels.emptyDone}</p>}</div></section><div className="fixed bottom-20 right-4 z-20 sm:hidden"><AddMenu actions={actions} labels={{ ...labels, addAction: ui.addReminder }} compact /></div></div>;
+  return <div className="relative space-y-6 pb-8">{(!installProps.standalone || installProps.permission !== 'granted') && <InstallPanel labels={labels} {...installProps} />}{featured ? <section className="relative overflow-hidden rounded-[2rem] border border-orange-100 bg-gradient-to-br from-orange-50 via-white to-blue-50 p-5 shadow-xl shadow-orange-100/40 ring-1 ring-white/80"><div className="pointer-events-none absolute -right-6 top-8 hidden h-36 w-36 rotate-6 items-center justify-center rounded-[2rem] bg-white/70 text-7xl shadow-lg sm:flex">🗓️</div><div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-orange-200/40 blur-2xl" /><div className="pointer-events-none absolute -bottom-12 left-10 h-28 w-28 rounded-full bg-blue-200/30 blur-2xl" /><div className="relative mb-4 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-orange-500 to-orange-400 px-4 py-2 text-sm font-black text-white shadow-lg shadow-orange-500/20">🔔 {ui.next}</div><div className="relative flex items-center gap-5"><InstitutionLogo item={featured} size="lg" /><div className="min-w-0 flex-1 sm:pr-28"><h1 className="text-3xl font-black leading-tight tracking-tight text-slate-950">{featured.title}</h1><div className="mt-3"><StatusBadge item={featured} language={state.language} /></div><div className="mt-4 flex items-center gap-2 text-2xl font-black text-slate-950">📅 {displayDateForItem(featured) ? formatDate(displayDateForItem(featured)) : labels.dateToEnter}</div>{featured.nextDate && displayDateForItem(featured) !== featured.nextDate && <div className="mt-1 text-xs font-semibold text-slate-500">Échéance : {formatDate(featured.nextDate)}</div>}</div></div><div className="relative mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2"><Button variant="outline" className="py-5 text-base shadow-sm" onClick={() => actions.guide(featured)}>📘 {labels.guideStep}</Button><Button variant="default" className="py-5 bg-gradient-to-r from-orange-600 to-orange-500 text-base shadow-lg shadow-orange-500/20 hover:from-orange-700 hover:to-orange-600" onClick={() => actions.done(featured.uid)}>✅ {labels.doneButton}</Button></div></section> : <section className="rounded-[2rem] border border-dashed border-blue-200 bg-white/90 p-8 text-center shadow-sm ring-1 ring-white"><div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 text-3xl">✅</div><h1 className="text-2xl font-black text-slate-950">{labels.nothingToDo}</h1><p className="mt-2 text-slate-500">{labels.emptyTodo}</p><p className="mt-2 text-sm font-medium text-blue-700">Ajoutez une démarche, puis cliquez sur “Oui, enregistrer” : le rappel sera calculé automatiquement.</p><div className="mt-5"><AddMenu actions={actions} labels={labels} /></div></section>}<section><div className="mb-3 flex items-center justify-between"><h2 className="flex items-center gap-2 text-xl font-black text-slate-950">📅 {ui.upcoming}</h2><button type="button" onClick={() => actions.setTab('alerts')} className="rounded-full bg-blue-50 px-3 py-2 text-sm font-black text-blue-700">{ui.seeAll} ›</button></div><div className="space-y-3">{upcoming.length ? upcoming.map((item) => <ReminderMiniCard key={item.uid} item={item} actions={actions} language={state.language} />) : <p className="rounded-3xl bg-white/90 p-5 text-sm text-slate-500 shadow-sm ring-1 ring-white">{labels.emptyTodo}</p>}</div></section><section className="rounded-[2rem] border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-4 shadow-sm"><h2 className="mb-3 flex items-center gap-2 text-xl font-black text-emerald-900">✅ {ui.recorded}</h2><div className="space-y-2">{done.length ? done.map((item) => <DoneMiniCard key={item.uid} item={item} actions={actions} />) : <p className="rounded-2xl bg-white/80 p-4 text-sm text-slate-500">{labels.emptyDone}</p>}</div></section><div className="fixed bottom-20 right-4 z-20 sm:hidden"><AddMenu actions={actions} labels={{ ...labels, addAction: ui.addReminder }} compact /></div></div>;
 }
 
 function Alerts({ state, labels, actions, permission, setPermission, language = 'fr' }) {
   const ui = visualTextFor(language);
-  const dated = sortedReminderItems(state.items);
+  const dated = upcomingAlerts(state.items);
   async function ask() { const current = notificationStatus(); if (current === 'unsupported' || current === 'denied') { setPermission(current); return; } try { setPermission(await window.Notification.requestPermission()); } catch { setPermission('unsupported'); } }
   const message = permission === 'denied' ? [labels.notificationsDeniedTitle, labels.notificationsDeniedText, 'bg-red-50 border-red-100 text-red-900'] : permission === 'granted' ? [labels.notificationsGrantedTitle, labels.notificationsGrantedText, 'bg-emerald-50 border-emerald-100 text-emerald-900'] : permission === 'unsupported' ? [labels.notificationsUnsupportedTitle, labels.notificationsUnsupportedText, 'bg-amber-50 border-amber-100 text-amber-900'] : [labels.browserNotifications, labels.notificationsDefaultText, 'bg-slate-50 border-slate-100 text-slate-700'];
 
-  return <div className="space-y-6 pb-8"><div><h1 className="flex items-center gap-3 text-3xl font-black text-slate-950">📅 {ui.dates}</h1><p className="mt-1 text-slate-600">{ui.allDatesHelp}</p></div><Card className="rounded-3xl border-0 shadow-sm"><CardContent className="flex items-center gap-4 p-5"><div className="flex h-14 w-14 items-center justify-center rounded-full bg-orange-50 text-3xl">⌁</div><div className="flex-1"><div className="text-xl font-black text-slate-950">{ui.allDates}</div><div className="text-sm text-slate-500">{ui.allDatesHelp}</div></div><span className="text-2xl text-slate-500">⌄</span></CardContent></Card><div>{dated.length ? dated.map((item) => <TimelineItem key={item.uid} item={item} actions={actions} language={language} />) : <p className="rounded-3xl bg-white p-6 text-center text-slate-500 shadow-sm">{ui.noReminder}</p>}</div><div className="rounded-3xl bg-orange-50 p-4 text-sm text-orange-950">ℹ️ {ui.orangeHelp}</div><Card className="rounded-3xl border-0 shadow-sm"><CardContent className="p-5"><div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="text-lg font-black">🔔 {labels.browserNotifications}</h2><p className="mt-1 text-slate-600">{labels.currentStatus} : <strong>{permission}</strong></p></div>{permission === 'default' && <Button variant="outline" onClick={ask}>{labels.allow}</Button>}</div><div className={`mt-4 rounded-2xl border p-4 text-sm ${message[2]}`}><div className="font-semibold">{message[0]}</div><div className="mt-1">{message[1]}</div></div></CardContent></Card></div>;
+  return <div className="space-y-6 pb-8"><div><h1 className="flex items-center gap-3 text-3xl font-black text-slate-950">📅 {ui.dates}</h1><p className="mt-1 text-slate-600">Les dates affichées ici sont les vrais rappels anticipés, pas seulement les dates anniversaire.</p></div><Card className="rounded-3xl border-0 shadow-sm"><CardContent className="flex items-center gap-4 p-5"><div className="flex h-14 w-14 items-center justify-center rounded-full bg-orange-50 text-3xl">⌁</div><div className="flex-1"><div className="text-xl font-black text-slate-950">{ui.allDates}</div><div className="text-sm text-slate-500">Rappels calculés automatiquement avant les échéances.</div></div><span className="text-2xl text-slate-500">⌄</span></CardContent></Card><div>{dated.length ? dated.map((item) => <TimelineItem key={`${item.uid}-${item.reminderDate}-${item.offset}`} item={item} actions={actions} language={language} />) : <p className="rounded-3xl bg-white p-6 text-center text-slate-500 shadow-sm">{ui.noReminder}</p>}</div><div className="rounded-3xl bg-orange-50 p-4 text-sm text-orange-950">ℹ️ Les rappels sont volontairement anticipés : renouvellement, échéance ou ouverture de période.</div><Card className="rounded-3xl border-0 shadow-sm"><CardContent className="p-5"><div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="text-lg font-black">🔔 {labels.browserNotifications}</h2><p className="mt-1 text-slate-600">{labels.currentStatus} : <strong>{permission}</strong></p></div>{permission === 'default' && <Button variant="outline" onClick={ask}>{labels.allow}</Button>}</div><div className={`mt-4 rounded-2xl border p-4 text-sm ${message[2]}`}><div className="font-semibold">{message[0]}</div><div className="mt-1">{message[1]}</div></div></CardContent></Card></div>;
 }
 
 function RepairPanel({ language, onRepair }) { const repair = repairUiFor(language); return <Card><CardContent className="p-5"><h2 className="text-lg font-bold">🛠️ {repair.title}</h2><p className="mt-1 text-slate-600">{repair.text}</p><div className="mt-4 rounded-2xl bg-amber-50 p-4 text-sm text-amber-950">{repair.warning}</div><Button variant="outline" className="mt-4 py-4" onClick={onRepair}>🛠️ {repair.button}</Button></CardContent></Card>; }
@@ -865,8 +908,8 @@ function Detail({ item, labels, actions, language }) {
   const c = catalogFor(draft);
   const tax = taxUiFor(language);
   const cal = calendarUiFor(language);
-  const isTax = draft.rule === 'impots_revenus';
-  const taxDeadline = isTax ? impotsDeadlineForLocation(draft) : '';
+  const isTax = false;
+  const taxDeadline = '';
 
   function updateTaxResidence(value) {
     const nextDraft = { ...draft, taxResidence: value, taxDepartment: value === 'france' ? draft.taxDepartment : '' };
@@ -878,7 +921,7 @@ function Detail({ item, labels, actions, language }) {
     setDraft(withImpotsAutoDate(nextDraft));
   }
 
-  return <div className="space-y-6"><Button variant="ghost" onClick={() => actions.setTab('home')}>← {labels.back}</Button><Card className="rounded-3xl"><CardContent className="p-6 sm:p-8"><div className="flex items-start gap-4"><div className=""><InstitutionLogo item={draft} /></div><div><h1 className="text-3xl font-bold">{draft.title}</h1><p className="mt-1 text-slate-600">{draft.short}</p></div></div><div className="mt-6 rounded-2xl bg-slate-50 p-4 text-sm text-slate-700"><div className="font-semibold">{labels.ruleApplied}</div><div className="mt-1">{c.timing}</div></div><div className="mt-6 space-y-4">{isTax && <div className="rounded-2xl border border-slate-200 bg-white p-4"><h3 className="font-bold text-slate-900">{tax.title}</h3><p className="mt-1 text-sm text-slate-600">{tax.help}</p><label className="mt-4 block space-y-2"><span className="text-sm font-medium text-slate-700">{tax.residence}</span><select value={draft.taxResidence || ''} onChange={(e) => updateTaxResidence(e.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3"><option value="">{tax.choose}</option><option value="france">{tax.france}</option><option value="etranger">{tax.abroad}</option></select></label>{draft.taxResidence === 'france' && <label className="mt-4 block space-y-2"><span className="text-sm font-medium text-slate-700">{tax.department}</span><input value={draft.taxDepartment || ''} inputMode="text" maxLength={3} placeholder={tax.departmentPlaceholder} onChange={(e) => updateTaxDepartment(e.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3" /></label>}{draft.taxResidence === 'etranger' && <div className="mt-4 rounded-xl bg-slate-50 p-3 text-sm text-slate-600">{tax.abroadHelp}</div>}<div className="mt-4 rounded-xl bg-blue-50 p-3 text-sm text-blue-950"><div className="font-semibold">{labels.nextReminder}</div><div className="mt-1">{taxDeadline ? formatDate(taxDeadline) : labels.dateToEnter}</div><div className="mt-1 text-xs opacity-80">{tax.dateHelp}</div></div></div>}{!isTax && (needsDate(draft) ? <label className="space-y-2 block"><span className="text-sm font-medium text-slate-700">{labels.dateToEnter}</span><input type="date" value={draft.nextDate} onChange={(e) => setDraft({ ...draft, nextDate: e.target.value })} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3" /></label> : <div className="rounded-2xl bg-white p-4 text-sm text-slate-700">{labels.dateAutoAfterDone}</div>)}<label className="flex items-center gap-3 rounded-xl border border-slate-300 bg-white px-3 py-3"><input type="checkbox" checked={draft.notifications !== false} onChange={(e) => setDraft({ ...draft, notifications: e.target.checked })} /><span className="text-sm font-medium text-slate-700">{labels.reminderEnabled}</span></label><label className="space-y-2 block"><span className="text-sm font-medium text-slate-700">{labels.note}</span><textarea value={draft.note || ''} onChange={(e) => setDraft({ ...draft, note: e.target.value })} rows={4} className="w-full resize-none rounded-xl border border-slate-300 bg-white px-3 py-3" /></label></div><div className="mt-6 grid grid-cols-1 gap-2 sm:grid-cols-4"><Button variant="default" className="py-6" onClick={() => actions.done(draft.uid, withImpotsAutoDate(draft))}>✅ {labels.doneButton}</Button><Button className="py-6" variant="outline" onClick={() => actions.save(withImpotsAutoDate(draft))}>💾 Modifier seulement</Button>{draft.completedOnce && draft.nextDate && !missingRequiredInfo(withImpotsAutoDate(draft)) && <Button variant="outline" className="py-6" onClick={() => actions.calendar(withImpotsAutoDate(draft))}>📅 {cal.shortLabel}</Button>}<Button variant="outline" className="py-6" onClick={() => actions.askDelete(draft.uid)}>🗑 {labels.delete}</Button></div></CardContent></Card></div>;
+  return <div className="space-y-6"><Button variant="ghost" onClick={() => actions.setTab('home')}>← {labels.back}</Button><Card className="rounded-3xl"><CardContent className="p-6 sm:p-8"><div className="flex items-start gap-4"><div className=""><InstitutionLogo item={draft} /></div><div><h1 className="text-3xl font-bold">{draft.title}</h1><p className="mt-1 text-slate-600">{draft.short}</p></div></div><div className="mt-6 rounded-2xl bg-slate-50 p-4 text-sm text-slate-700"><div className="font-semibold">{labels.ruleApplied}</div><div className="mt-1">{c.timing}</div></div><div className="mt-6 space-y-4">{isTax && <div className="rounded-2xl border border-slate-200 bg-white p-4"><h3 className="font-bold text-slate-900">{tax.title}</h3><p className="mt-1 text-sm text-slate-600">{tax.help}</p><label className="mt-4 block space-y-2"><span className="text-sm font-medium text-slate-700">{tax.residence}</span><select value={draft.taxResidence || ''} onChange={(e) => updateTaxResidence(e.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3"><option value="">{tax.choose}</option><option value="france">{tax.france}</option><option value="etranger">{tax.abroad}</option></select></label>{draft.taxResidence === 'france' && <label className="mt-4 block space-y-2"><span className="text-sm font-medium text-slate-700">{tax.department}</span><input value={draft.taxDepartment || ''} inputMode="text" maxLength={3} placeholder={tax.departmentPlaceholder} onChange={(e) => updateTaxDepartment(e.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3" /></label>}{draft.taxResidence === 'etranger' && <div className="mt-4 rounded-xl bg-slate-50 p-3 text-sm text-slate-600">{tax.abroadHelp}</div>}<div className="mt-4 rounded-xl bg-blue-50 p-3 text-sm text-blue-950"><div className="font-semibold">Premier rappel calculé</div><div className="mt-1">{draft.nextDate ? formatDate(draft.nextDate) : labels.dateToEnter}</div>{taxDeadline && <div className="mt-1 text-xs opacity-80">Date limite estimée : {formatDate(taxDeadline)}</div>}<div className="mt-1 text-xs opacity-80">{tax.dateHelp}</div></div></div>}{!isTax && (needsDate(draft) ? <label className="space-y-2 block"><span className="text-sm font-medium text-slate-700">{dateInputLabel(draft, labels)}</span><input type="date" value={draft.nextDate} onChange={(e) => setDraft({ ...draft, nextDate: e.target.value })} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3" /><span className="block rounded-xl bg-blue-50 p-3 text-xs font-medium text-blue-950">{dateInputHelp(draft)}</span></label> : <div className="rounded-2xl bg-white p-4 text-sm text-slate-700">{labels.dateAutoAfterDone}</div>)}<label className="flex items-center gap-3 rounded-xl border border-slate-300 bg-white px-3 py-3"><input type="checkbox" checked={draft.notifications !== false} onChange={(e) => setDraft({ ...draft, notifications: e.target.checked })} /><span className="text-sm font-medium text-slate-700">{labels.reminderEnabled}</span></label><label className="space-y-2 block"><span className="text-sm font-medium text-slate-700">{labels.note}</span><textarea value={draft.note || ''} onChange={(e) => setDraft({ ...draft, note: e.target.value })} rows={4} className="w-full resize-none rounded-xl border border-slate-300 bg-white px-3 py-3" /></label></div><div className="mt-6 grid grid-cols-1 gap-2 sm:grid-cols-4"><Button variant="default" className="py-6" onClick={() => actions.done(draft.uid, withImpotsAutoDate(draft))}>✅ {labels.doneButton}</Button><Button className="py-6" variant="outline" onClick={() => actions.save(withImpotsAutoDate(draft))}>💾 Modifier seulement</Button>{draft.completedOnce && draft.nextDate && !missingRequiredInfo(withImpotsAutoDate(draft)) && <Button variant="outline" className="py-6" onClick={() => actions.calendar(withImpotsAutoDate(draft))}>📅 {cal.shortLabel}</Button>}<Button variant="outline" className="py-6" onClick={() => actions.askDelete(draft.uid)}>🗑 {labels.delete}</Button></div></CardContent></Card></div>;
 }
 
 export default function App() {
@@ -1075,18 +1118,13 @@ export default function App() {
       }
 
       const newItem = makeItem(catalogId);
-      const mustComplete = missingRequiredInfo(newItem);
-
-      if (mustComplete) {
-        setSelectedUid(newItem.uid);
-      }
 
       setState((s) => ({
         ...s,
-        tab: mustComplete ? 'detail' : 'home',
+        tab: 'home',
         items: [newItem, ...s.items],
         toast: {
-          title: mustComplete ? labels.dateToEnter : labels.saved,
+          title: labels.saved,
           body: c.title,
         },
       }));
@@ -1120,12 +1158,16 @@ export default function App() {
       // Après validation, proposer directement l'ajout du prochain rappel à l'agenda.
       // setTimeout évite que la fenêtre soit masquée par le changement d'écran.
       if (completed.nextDate) {
-        setTimeout(() => setCalendarItem(completed), 80);
+        const agendaItem = { ...completed, calendarDate: firstReminderDateForItem(completed) || completed.nextDate };
+        setTimeout(() => setCalendarItem(agendaItem), 80);
       }
     },
     edit: (item) => { setSelectedUid(item.uid); setState((s) => ({ ...s, tab: 'detail' })); },
     guide: (item) => { setSelectedGuideId(item.catalogId); setState((s) => ({ ...s, tab: 'guides' })); },
-    calendar: (item) => setCalendarItem(withImpotsAutoDate(item)),
+    calendar: (item) => {
+      const prepared = withImpotsAutoDate(item);
+      setCalendarItem({ ...prepared, calendarDate: firstReminderDateForItem(prepared) || prepared.nextDate });
+    },
     save: (draft) => { setState((s) => ({ ...s, items: s.items.map((i) => i.uid === draft.uid ? normalizeItem(draft) : i), toast: { title: labels.saved, body: draft.title } })); },
     askDelete: (uid) => setDeleteUid(uid),
     cancelDelete: () => setDeleteUid(null),
