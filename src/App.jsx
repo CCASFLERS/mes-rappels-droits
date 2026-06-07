@@ -362,7 +362,6 @@ const CATALOG = [
   { id: 'france_travail', rule: 'france_travail', title: 'France Travail', short: 'Actualisation mensuelle', cat: 'Emploi', icon: '💼', timing: 'Actualisation mensuelle. Date limite généralement le 15 du mois à minuit.' },
   { id: 'caf_rsa', rule: 'caf_quarterly', title: 'CAF / RSA', short: 'Déclaration trimestrielle', cat: 'Droits sociaux', icon: '💶', timing: 'Déclaration trimestrielle de ressources tous les 3 mois.' },
   { id: 'prime_activite', rule: 'caf_quarterly', title: 'Prime d’activité', short: 'Déclaration trimestrielle', cat: 'Droits sociaux', icon: '💶', timing: 'Déclaration trimestrielle de ressources tous les 3 mois.' },
-  { id: 'aah_caf', rule: 'caf_quarterly', title: 'AAH — déclaration CAF', short: 'Déclaration trimestrielle — si vous êtes concerné', cat: 'Handicap', icon: '♿', timing: 'À utiliser seulement si vous êtes concerné par la déclaration trimestrielle AAH.' },
   { id: 'titre_sejour', rule: 'titre_sejour', title: 'Titre de séjour', short: 'Renouvellement à anticiper', cat: 'Séjour', icon: '🪪', timing: 'Demande généralement entre 4 et 2 mois avant la fin de validité.' },
   { id: 'css_sante', rule: 'css_sante', title: 'CSS / Santé', short: 'Renouvellement annuel', cat: 'Santé', icon: '🏥', timing: 'Droits CSS accordés pour 1 an. Renouvellement entre 4 et 2 mois avant la fin.' },
   { id: 'ame', rule: 'ame', title: 'AME', short: 'Renouvellement annuel', cat: 'Santé', icon: '🩺', timing: 'Renouvellement à déposer dans les 2 mois avant expiration.' },
@@ -406,20 +405,45 @@ function addDays(s, n) { const d = parseDate(s) || parseDate(todayISO()); d.setD
 function addMonths(s, n) { const d = parseDate(s) || parseDate(todayISO()); d.setMonth(d.getMonth() + n); return localISO(d); }
 function daysUntil(s) { return Math.round(((parseDate(s) || new Date()) - (parseDate(todayISO()) || new Date())) / 86400000); }
 function statusOf(s) { const d = daysUntil(s); if (d < 0) return 'late'; if (d <= 7) return 'soon'; return 'ok'; }
-function reminderOffsets(rule) { if (rule === 'france_travail') return [-5, -1, 0]; if (rule === 'caf_quarterly') return [-21, -7, -1, 0, 3]; if (rule === 'titre_sejour' || rule === 'css_sante') return [-120, -90, -60, -15, 0]; if (rule === 'ame' || rule === 'logement_social') return [-60, -30, -15, 0]; if (rule === 'mdph_long') return [-180, -120, -60, -30, 0]; return [-7, 0, 1]; }
+function reminderOffsets(rule) {
+  if (rule === 'france_travail') return [-5, -1, 0];
+  if (rule === 'caf_quarterly') return [-14, -7, -1, 0];
+  if (rule === 'css_sante') return [-120, -90, -60];
+  if (rule === 'ame') return [-60, -30, 0];
+  if (rule === 'logement_social') return [-30];
+  if (rule === 'titre_sejour' || rule === 'mdph_long') return [0];
+  if (rule === 'custom') return [0];
+  return [0];
+}
 function franceTravailCurrentDeadline(from = todayISO()) { const d = parseDate(from) || parseDate(todayISO()); const deadline = new Date(d.getFullYear(), d.getMonth(), 15); if (d.getDate() > 15) deadline.setMonth(deadline.getMonth() + 1); return localISO(deadline); }
 function franceTravailNextDeadlineAfterDone(from = todayISO()) { return addMonths(franceTravailCurrentDeadline(from), 1); }
 function franceTravailOpeningDate(deadlineDate) { const deadline = parseDate(deadlineDate) || parseDate(franceTravailCurrentDeadline()); const opening = new Date(deadline.getFullYear(), deadline.getMonth() - 1, 1); const previousMonthIsFebruary = opening.getMonth() === 1; opening.setDate(previousMonthIsFebruary ? 26 : 28); return localISO(opening); }
 function impotsCampaignYear(from = todayISO()) {
   const d = parseDate(from) || parseDate(todayISO());
   const y = Math.max(2026, d.getFullYear());
-  const afterCampaign = d > new Date(y, 6, 15);
+  // Après mi-juin, on prépare déjà la campagne de l'année suivante.
+  const afterCampaign = d > new Date(y, 5, 15);
   return afterCampaign ? y + 1 : y;
 }
 function impotsDeadlineDate(year, zone) {
   if (zone === 1) return `${year}-05-21`;
   if (zone === 2) return `${year}-05-28`;
   return `${year}-06-04`;
+}
+function impotsZoneForDepartment(value) {
+  const dept = normalizeTaxDepartment(value);
+  if (!dept) return 0;
+  if (dept === '2A' || dept === '2B') return 2;
+  const number = Number.parseInt(dept, 10);
+  if (!Number.isFinite(number)) return 0;
+  if (number >= 1 && number <= 19) return 1;
+  if (number >= 20 && number <= 54) return 2;
+  if (number >= 55) return 3;
+  return 0;
+}
+function impotsDeadlineForYear(item, year) {
+  const zone = impotsZoneForDepartment(item?.taxDepartment);
+  return zone ? impotsDeadlineDate(year, zone) : '';
 }
 function impotsReminderStartDate(year) {
   // Les dates officielles changent chaque année.
@@ -439,25 +463,7 @@ function normalizeTaxDepartment(value) {
 }
 function impotsDeadlineForLocation(item, from = todayISO()) {
   if (!item || item.rule !== 'impots_revenus') return '';
-  const year = impotsCampaignYear(from);
-
-  if (item.taxResidence === 'etranger') {
-    return impotsDeadlineDate(year, 1);
-  }
-
-  if (item.taxResidence !== 'france') return '';
-
-  const dept = normalizeTaxDepartment(item.taxDepartment);
-  if (!dept) return '';
-  if (dept === '2A' || dept === '2B') return impotsDeadlineDate(year, 2);
-
-  const number = Number.parseInt(dept, 10);
-  if (!Number.isFinite(number)) return '';
-  if (number >= 1 && number <= 19) return impotsDeadlineDate(year, 1);
-  if (number >= 20 && number <= 54) return impotsDeadlineDate(year, 2);
-  if (number >= 55) return impotsDeadlineDate(year, 3);
-
-  return '';
+  return impotsDeadlineForYear(item, impotsCampaignYear(from));
 }
 function impotsFirstReminderForLocation(item, from = todayISO()) {
   const deadline = impotsDeadlineForLocation(item, from);
@@ -486,66 +492,62 @@ function impotsNextReminderAfterRecording(item, from = todayISO()) {
   const year = deadlineDate ? deadlineDate.getFullYear() + 1 : (parseDate(from) || new Date()).getFullYear() + 1;
   return impotsReminderStartDate(year);
 }
+function impotsNextDeadlineAfterRecording(item, from = todayISO()) {
+  const d = parseDate(from) || parseDate(todayISO());
+  const year = Math.max(2026, d.getFullYear() + 1);
+  return impotsDeadlineForYear(item, year);
+}
 function withImpotsAutoDate(item) {
   if (!item || item.rule !== 'impots_revenus') return item;
   if (item.completedOnce && item.nextDate) return item;
-  return { ...item, nextDate: item.nextDate || impotsAutomaticReminderDate() };
+  const deadline = impotsDeadlineForLocation(item);
+  return deadline ? { ...item, taxResidence: 'france', nextDate: deadline } : { ...item, taxResidence: 'france', nextDate: '' };
 }
 function nextAfterDone(item, from = todayISO()) {
   const rule = item.rule;
   if (rule === 'france_travail') return franceTravailNextDeadlineAfterDone(from);
   if (rule === 'caf_quarterly') return addMonths(from, 3);
-  if (rule === 'mdph_long') return addMonths(from, 12);
-  if (['titre_sejour', 'css_sante', 'ame', 'logement_social'].includes(rule)) return addMonths(from, 12);
+  if (rule === 'impots_revenus') return impotsNextDeadlineAfterRecording(item, from);
+  if (rule === 'titre_sejour') return addMonths(from, 6);
+  if (rule === 'mdph_long') return addMonths(from, 6);
+  if (['css_sante', 'ame', 'logement_social'].includes(rule)) return addMonths(from, 12);
   if (rule === 'custom') return item.nextDate || addDays(from, 30);
   return addMonths(from, 1);
 }
 function nextDateAfterRecording(item) {
   if (item.rule === 'custom') return item.nextDate || addDays(todayISO(), 30);
-  if (item.rule === 'impots_revenus') {
-    return impotsAutomaticReminderDate(addDays(todayISO(), 1));
-  }
   return nextAfterDone(item);
 }
 function impotsResidenceComplete(item) {
   return true;
 }
 function missingRequiredInfo(item) {
-  // Simplicité voulue : aucune démarche standard ne bloque sur une date à saisir.
-  // La personne ajoute la démarche, puis clique sur “Oui, enregistrer” :
-  // l'application calcule automatiquement le prochain rappel selon la règle.
   if (!item) return true;
+  if (item.rule === 'impots_revenus' && !item.completedOnce) return !impotsDeadlineForLocation(item);
+  if (item.rule === 'custom') return !item.nextDate || !String(item.note || '').trim();
   return false;
 }
 function suggestedDate(catalog, from = todayISO()) {
   if (catalog.rule === 'france_travail') return franceTravailCurrentDeadline(from);
   if (catalog.rule === 'caf_quarterly') return addMonths(from, 3);
-  if (catalog.rule === 'impots_revenus') return impotsAutomaticReminderDate(from);
-  if (['titre_sejour', 'css_sante', 'ame', 'logement_social', 'mdph_long'].includes(catalog.rule)) return addMonths(from, 12);
+  if (catalog.rule === 'impots_revenus') return '';
+  if (catalog.rule === 'titre_sejour') return addMonths(from, 6);
+  if (catalog.rule === 'mdph_long') return addMonths(from, 6);
+  if (['css_sante', 'ame', 'logement_social'].includes(catalog.rule)) return addMonths(from, 12);
   return addDays(from, 30);
 }
 function needsDate(item) {
-  // Seul “Autre rappel” garde une date modifiable, sans bloquer l'ajout.
   return item?.rule === 'custom';
 }
 function dateInputLabel(item, labels) {
   if (!item) return labels.dateToEnter;
   if (item.rule === 'custom') return 'Date du rappel';
-  if (item.rule === 'titre_sejour') return 'Date de fin de validité';
-  if (item.rule === 'css_sante' || item.rule === 'ame') return 'Date de fin des droits';
-  if (item.rule === 'logement_social') return 'Date limite / date anniversaire';
-  if (item.rule === 'mdph_long') return 'Date de fin des droits MDPH';
   return labels.dateToEnter;
 }
 function dateInputHelp(item) {
   if (!item) return '';
-  if (item.rule === 'custom') return 'Choisissez la date à laquelle la personne doit recevoir le rappel.';
-  if (item.rule === 'titre_sejour') return 'Renseignez la fin de validité : l’application calculera les rappels 4 mois, 3 mois, 2 mois et 15 jours avant.';
-  if (item.rule === 'css_sante') return 'Renseignez la fin des droits CSS : l’application anticipera le renouvellement entre 4 et 2 mois avant.';
-  if (item.rule === 'ame') return 'Renseignez la fin des droits AME : l’application anticipera le renouvellement dans les 2 mois avant.';
-  if (item.rule === 'logement_social') return 'Renseignez la date de renouvellement ou la date anniversaire : l’application rappellera avant l’échéance.';
-  if (item.rule === 'mdph_long') return 'Renseignez la fin des droits : l’application rappellera plusieurs mois avant.';
-  return 'Cette date sert de référence : les rappels sont ensuite calculés automatiquement.';
+  if (item.rule === 'custom') return 'Choisissez la date du rappel et écrivez une note.';
+  return 'Le rappel est calculé automatiquement.';
 }
 function firstReminderDateForItem(item) {
   if (!item || !item.nextDate || missingRequiredInfo(item)) return item?.nextDate || '';
@@ -572,8 +574,37 @@ function showAsTodo(item) {
 function makeItem(catalogId) { const c = CATALOG.find((x) => x.id === catalogId) || CATALOG[0]; return { uid: `${c.id}-${Date.now()}-${Math.random().toString(16).slice(2)}`, catalogId: c.id, rule: c.rule, title: c.title, short: c.short, cat: c.cat, icon: c.icon, nextDate: suggestedDate(c), lastAction: '', note: '', notifications: true, completedOnce: false, taxResidence: '', taxDepartment: '' }; }
 function normalizeItem(item) { const c = catalogFor(item); return withImpotsAutoDate({ ...makeItem(c.id), ...item, rule: item.rule || c.rule, title: item.title || c.title, short: item.short || c.short, cat: item.cat || c.cat, icon: item.icon || c.icon }); }
 function initialState() { return { language: 'fr', onboarded: false, tab: 'home', toast: null, items: [] }; }
-function loadState() { try { const saved = localStorage.getItem(STORAGE_KEY); if (saved) { const parsed = JSON.parse(saved); return { ...initialState(), ...parsed, items: Array.isArray(parsed.items) ? parsed.items.map(normalizeItem) : [] }; } } catch {} return initialState(); }
-function upcomingAlerts(items) { return items.filter((item) => Boolean(item.nextDate)).flatMap((item) => { if (item.rule === 'france_travail') { const openingDate = franceTravailOpeningDate(item.nextDate); return [{ ...item, reminderDate: openingDate, offset: 'opening', label: 'Ouverture de l’actualisation' }, ...reminderOffsets(item.rule).map((offset) => ({ ...item, reminderDate: addDays(item.nextDate, offset), offset }))]; } return reminderOffsets(item.rule).map((offset) => ({ ...item, reminderDate: addDays(item.nextDate, offset), offset })); }).filter((r) => daysUntil(r.reminderDate) >= 0).sort((a, b) => parseDate(a.reminderDate) - parseDate(b.reminderDate)).slice(0, 12); }
+function loadState() { try { const saved = localStorage.getItem(STORAGE_KEY); if (saved) { const parsed = JSON.parse(saved); return { ...initialState(), ...parsed, items: Array.isArray(parsed.items) ? parsed.items.filter((item) => item.catalogId !== 'aah_caf').map(normalizeItem) : [] }; } } catch {} return initialState(); }
+function upcomingAlerts(items) {
+  return items
+    .filter((item) => Boolean(item.nextDate) && !missingRequiredInfo({ ...item, completedOnce: true }))
+    .flatMap((item) => {
+      if (item.rule === 'france_travail') {
+        const openingDate = franceTravailOpeningDate(item.nextDate);
+        return [
+          { ...item, reminderDate: openingDate, offset: 'opening', label: 'Ouverture de l’actualisation' },
+          ...reminderOffsets(item.rule).map((offset) => ({ ...item, reminderDate: addDays(item.nextDate, offset), offset }))
+        ];
+      }
+
+      if (item.rule === 'impots_revenus') {
+        const deadline = parseDate(item.nextDate);
+        if (!deadline) return [];
+        const year = deadline.getFullYear();
+        return [
+          { ...item, reminderDate: impotsReminderStartDate(year), offset: 'opening', label: 'Vérifier la déclaration' },
+          { ...item, reminderDate: addDays(item.nextDate, -14), offset: -14 },
+          { ...item, reminderDate: addDays(item.nextDate, -7), offset: -7 },
+          { ...item, reminderDate: item.nextDate, offset: 0 },
+        ];
+      }
+
+      return reminderOffsets(item.rule).map((offset) => ({ ...item, reminderDate: addDays(item.nextDate, offset), offset }));
+    })
+    .filter((r) => daysUntil(r.reminderDate) >= 0)
+    .sort((a, b) => parseDate(a.reminderDate) - parseDate(b.reminderDate))
+    .slice(0, 12);
+}
 function notificationStatus() { if (typeof window === 'undefined' || !('Notification' in window)) return 'unsupported'; return window.Notification.permission; }
 const PUSH_CLIENT_ID_KEY = 'mes-rappels-droits-client-id-v1';
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || '';
@@ -870,8 +901,10 @@ function Home({ state, labels, actions, installProps }) {
   const featuredMissing = featured ? missingRequiredInfo(featured) : false;
   const upcoming = activeItems.filter((item) => !featured || item.uid !== featured.uid).filter((item) => item.nextDate && !missingRequiredInfo(item)).slice(0, 3);
   const done = state.items.filter((i) => i.completedOnce).sort((a, b) => parseDate(b.lastAction) - parseDate(a.lastAction)).slice(0, 3);
+  const isTaxFeatured = featured?.rule === 'impots_revenus' && !featured.completedOnce;
+  const taxDepartmentValue = featured?.taxDepartment || '';
 
-  return <div className="relative space-y-6 pb-8">{(!installProps.standalone || installProps.permission !== 'granted') && <InstallPanel labels={labels} {...installProps} />}{featured ? <section className="relative overflow-hidden rounded-[2rem] border border-orange-100 bg-gradient-to-br from-orange-50 via-white to-blue-50 p-5 shadow-xl shadow-orange-100/40 ring-1 ring-white/80"><div className="pointer-events-none absolute -right-6 top-8 hidden h-36 w-36 rotate-6 items-center justify-center rounded-[2rem] bg-white/70 text-7xl shadow-lg sm:flex">🗓️</div><div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-orange-200/40 blur-2xl" /><div className="pointer-events-none absolute -bottom-12 left-10 h-28 w-28 rounded-full bg-blue-200/30 blur-2xl" /><div className="relative mb-4 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-orange-500 to-orange-400 px-4 py-2 text-sm font-black text-white shadow-lg shadow-orange-500/20">🔔 {ui.next}</div><div className="relative flex items-center gap-5"><InstitutionLogo item={featured} size="lg" /><div className="min-w-0 flex-1 sm:pr-28"><h1 className="text-3xl font-black leading-tight tracking-tight text-slate-950">{featured.title}</h1><div className="mt-3"><StatusBadge item={featured} language={state.language} /></div><div className="mt-4 flex items-center gap-2 text-2xl font-black text-slate-950">📅 {displayDateForItem(featured) ? formatDate(displayDateForItem(featured)) : labels.dateToEnter}</div>{featured.nextDate && displayDateForItem(featured) !== featured.nextDate && <div className="mt-1 text-xs font-semibold text-slate-500">Échéance : {formatDate(featured.nextDate)}</div>}</div></div><div className="relative mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2"><Button variant="default" className="py-5 bg-gradient-to-r from-orange-600 to-orange-500 text-base shadow-lg shadow-orange-500/20 hover:from-orange-700 hover:to-orange-600" onClick={() => actions.done(featured.uid)}>✅ {labels.doneButton}</Button><Button variant="outline" className="py-5 text-base shadow-sm" onClick={() => actions.askDelete(featured.uid)}>🗑 {labels.delete}</Button></div></section> : <section className="rounded-[2rem] border border-dashed border-blue-200 bg-white/90 p-8 text-center shadow-sm ring-1 ring-white"><div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 text-3xl">✅</div><h1 className="text-2xl font-black text-slate-950">{labels.nothingToDo}</h1><p className="mt-2 text-slate-500">{labels.emptyTodo}</p><p className="mt-2 text-sm font-medium text-blue-700">Ajoutez une démarche, puis cliquez sur “Oui, enregistrer” : le rappel sera calculé automatiquement.</p><div className="mt-5"><AddMenu actions={actions} labels={labels} /></div></section>}<section><div className="mb-3 flex items-center justify-between"><h2 className="flex items-center gap-2 text-xl font-black text-slate-950">📅 {ui.upcoming}</h2><button type="button" onClick={() => actions.setTab('alerts')} className="rounded-full bg-blue-50 px-3 py-2 text-sm font-black text-blue-700">{ui.seeAll} ›</button></div><div className="space-y-3">{upcoming.length ? upcoming.map((item) => <ReminderMiniCard key={item.uid} item={item} actions={actions} language={state.language} />) : <p className="rounded-3xl bg-white/90 p-5 text-sm text-slate-500 shadow-sm ring-1 ring-white">{labels.emptyTodo}</p>}</div></section><section className="rounded-[2rem] border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-4 shadow-sm"><h2 className="mb-3 flex items-center gap-2 text-xl font-black text-emerald-900">✅ {ui.recorded}</h2><div className="space-y-2">{done.length ? done.map((item) => <DoneMiniCard key={item.uid} item={item} actions={actions} />) : <p className="rounded-2xl bg-white/80 p-4 text-sm text-slate-500">{labels.emptyDone}</p>}</div></section><div className="fixed bottom-20 right-4 z-20 sm:hidden"><AddMenu actions={actions} labels={{ ...labels, addAction: ui.addReminder }} compact /></div></div>;
+  return <div className="relative space-y-6 pb-8">{(!installProps.standalone || installProps.permission !== 'granted') && <InstallPanel labels={labels} {...installProps} />}{featured ? <section className="relative overflow-hidden rounded-[2rem] border border-orange-100 bg-gradient-to-br from-orange-50 via-white to-blue-50 p-5 shadow-xl shadow-orange-100/40 ring-1 ring-white/80"><div className="pointer-events-none absolute -right-6 top-8 hidden h-36 w-36 rotate-6 items-center justify-center rounded-[2rem] bg-white/70 text-7xl shadow-lg sm:flex">🗓️</div><div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-orange-200/40 blur-2xl" /><div className="pointer-events-none absolute -bottom-12 left-10 h-28 w-28 rounded-full bg-blue-200/30 blur-2xl" /><div className="relative mb-4 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-orange-500 to-orange-400 px-4 py-2 text-sm font-black text-white shadow-lg shadow-orange-500/20">🔔 {ui.next}</div><div className="relative flex items-center gap-5"><InstitutionLogo item={featured} size="lg" /><div className="min-w-0 flex-1 sm:pr-28"><h1 className="text-3xl font-black leading-tight tracking-tight text-slate-950">{featured.title}</h1><div className="mt-3"><StatusBadge item={featured} language={state.language} /></div><div className="mt-4 flex items-center gap-2 text-2xl font-black text-slate-950">📅 {displayDateForItem(featured) ? formatDate(displayDateForItem(featured)) : labels.dateToEnter}</div>{featured.nextDate && displayDateForItem(featured) !== featured.nextDate && <div className="mt-1 text-xs font-semibold text-slate-500">Échéance : {formatDate(featured.nextDate)}</div>}</div></div>{isTaxFeatured && <div className="relative mt-5 rounded-2xl bg-white/80 p-4 shadow-sm ring-1 ring-orange-100"><label className="block text-sm font-black text-slate-900">Département de résidence</label><p className="mt-1 text-xs font-medium text-slate-500">Exemple : 61, 75, 2A. L’application estimera automatiquement la zone et les dates de l’année prochaine.</p><input value={taxDepartmentValue} inputMode="text" maxLength={3} placeholder="Ex : 61" onChange={(e) => actions.update({ ...featured, taxResidence: 'france', taxDepartment: e.target.value.replace(/[^0-9ABab]/g, '').toUpperCase() })} className="mt-3 w-full rounded-2xl border border-orange-200 bg-white px-4 py-3 text-lg font-black text-slate-950 outline-none focus:ring-2 focus:ring-orange-300" /></div>}<div className="relative mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2"><Button variant="default" disabled={featuredMissing} className="py-5 bg-gradient-to-r from-orange-600 to-orange-500 text-base shadow-lg shadow-orange-500/20 hover:from-orange-700 hover:to-orange-600" onClick={() => actions.done(featured.uid)}>✅ {labels.doneButton}</Button><Button variant="outline" className="py-5 text-base shadow-sm" onClick={() => actions.askDelete(featured.uid)}>🗑 {labels.delete}</Button></div>{featuredMissing && <p className="relative mt-3 rounded-2xl bg-amber-50 p-3 text-sm font-semibold text-amber-950">Complétez l’information demandée avant d’enregistrer.</p>}</section> : <section className="rounded-[2rem] border border-dashed border-blue-200 bg-white/90 p-8 text-center shadow-sm ring-1 ring-white"><div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 text-3xl">✅</div><h1 className="text-2xl font-black text-slate-950">{labels.nothingToDo}</h1><p className="mt-2 text-slate-500">{labels.emptyTodo}</p><p className="mt-2 text-sm font-medium text-blue-700">Ajoutez une démarche, puis cliquez sur “Oui, enregistrer” : le rappel sera calculé automatiquement.</p><div className="mt-5"><AddMenu actions={actions} labels={labels} /></div></section>}<section><div className="mb-3 flex items-center justify-between"><h2 className="flex items-center gap-2 text-xl font-black text-slate-950">📅 {ui.upcoming}</h2><button type="button" onClick={() => actions.setTab('alerts')} className="rounded-full bg-blue-50 px-3 py-2 text-sm font-black text-blue-700">{ui.seeAll} ›</button></div><div className="space-y-3">{upcoming.length ? upcoming.map((item) => <ReminderMiniCard key={item.uid} item={item} actions={actions} language={state.language} />) : <p className="rounded-3xl bg-white/90 p-5 text-sm text-slate-500 shadow-sm ring-1 ring-white">{labels.emptyTodo}</p>}</div></section><section className="rounded-[2rem] border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-4 shadow-sm"><h2 className="mb-3 flex items-center gap-2 text-xl font-black text-emerald-900">✅ {ui.recorded}</h2><div className="space-y-2">{done.length ? done.map((item) => <DoneMiniCard key={item.uid} item={item} actions={actions} />) : <p className="rounded-2xl bg-white/80 p-4 text-sm text-slate-500">{labels.emptyDone}</p>}</div></section><div className="fixed bottom-20 right-4 z-20 sm:hidden"><AddMenu actions={actions} labels={{ ...labels, addAction: ui.addReminder }} compact /></div></div>;
 }
 
 function Alerts({ state, labels, actions, permission, setPermission, language = 'fr' }) {
@@ -907,9 +940,15 @@ function Detail({ item, labels, actions, language }) {
 
   const c = catalogFor(draft);
   const cal = calendarUiFor(language);
-  const date = displayDateForItem(withImpotsAutoDate(draft));
+  const prepared = withImpotsAutoDate(draft);
+  const date = displayDateForItem(prepared);
+  const isCustom = draft.rule === 'custom';
 
-  return <div className="space-y-6"><Button variant="ghost" onClick={() => actions.setTab('home')}>← {labels.back}</Button><Card className="rounded-3xl border-0 shadow-sm ring-1 ring-white/70"><CardContent className="p-6 sm:p-8"><div className="flex items-start gap-4"><InstitutionLogo item={draft} /><div><h1 className="text-3xl font-black text-slate-950">{draft.title}</h1><p className="mt-1 text-slate-600">{draft.short}</p></div></div><div className="mt-6 rounded-2xl bg-slate-50 p-4 text-sm text-slate-700"><div className="font-bold">{labels.ruleApplied}</div><div className="mt-1">{c.timing}</div></div>{draft.completedOnce ? <div className="mt-6 rounded-2xl bg-emerald-50 p-4 text-sm text-emerald-950"><div className="font-black">✅ {labels.saved}</div><div className="mt-1">{draft.lastAction ? `${labels.doneOn} ${formatDate(draft.lastAction)}` : labels.doneHelp}</div>{date && <div className="mt-2 font-semibold">{labels.nextReminder} : {formatDate(date)}</div>}</div> : <div className="mt-6 rounded-2xl bg-orange-50 p-4 text-sm text-orange-950"><div className="font-black">À enregistrer</div><div className="mt-1">Cliquez sur “Oui, enregistrer”. Le prochain rappel sera calculé automatiquement.</div>{date && <div className="mt-2 font-semibold">{labels.nextReminder} : {formatDate(date)}</div>}</div>}<div className={`mt-6 grid grid-cols-1 gap-2 ${draft.completedOnce ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>{!draft.completedOnce && <Button variant="default" className="py-6 bg-orange-600 hover:bg-orange-700" onClick={() => actions.done(draft.uid, withImpotsAutoDate(draft))}>✅ {labels.doneButton}</Button>}{draft.completedOnce && draft.nextDate && !missingRequiredInfo(withImpotsAutoDate(draft)) && <Button variant="outline" className="py-6" onClick={() => actions.calendar(withImpotsAutoDate(draft))}>📅 {cal.shortLabel}</Button>}{draft.completedOnce && <Button variant="outline" className="py-6" onClick={() => actions.done(draft.uid, withImpotsAutoDate(draft))}>✅ Enregistrer à nouveau</Button>}<Button variant="outline" className="py-6" onClick={() => actions.askDelete(draft.uid)}>🗑 {labels.delete}</Button></div></CardContent></Card></div>;
+  if (isCustom) {
+    return <div className="space-y-6"><Button variant="ghost" onClick={() => actions.setTab('home')}>← {labels.back}</Button><Card className="rounded-3xl border-0 shadow-sm ring-1 ring-white/70"><CardContent className="p-6 sm:p-8"><div className="flex items-start gap-4"><InstitutionLogo item={draft} /><div><h1 className="text-3xl font-black text-slate-950">{draft.title}</h1><p className="mt-1 text-slate-600">Rappel personnalisé</p></div></div><div className="mt-6 space-y-4"><label className="block space-y-2"><span className="text-sm font-black text-slate-800">Date du rappel</span><input type="date" value={draft.nextDate || ''} onChange={(e) => setDraft({ ...draft, nextDate: e.target.value })} className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3" /></label><label className="block space-y-2"><span className="text-sm font-black text-slate-800">Note</span><textarea value={draft.note || ''} onChange={(e) => setDraft({ ...draft, note: e.target.value })} rows={4} placeholder="Ex : appeler l’organisme, apporter un document…" className="w-full resize-none rounded-2xl border border-slate-300 bg-white px-4 py-3" /></label></div><div className="mt-6 grid grid-cols-1 gap-2 sm:grid-cols-2"><Button variant="default" disabled={missingRequiredInfo(draft)} className="py-6 bg-orange-600 hover:bg-orange-700" onClick={() => actions.done(draft.uid, draft)}>✅ {labels.doneButton}</Button><Button variant="outline" className="py-6" onClick={() => actions.askDelete(draft.uid)}>🗑 {labels.delete}</Button></div>{missingRequiredInfo(draft) && <p className="mt-3 rounded-2xl bg-amber-50 p-3 text-sm font-semibold text-amber-950">La date et la note sont obligatoires pour un rappel personnalisé.</p>}</CardContent></Card></div>;
+  }
+
+  return <div className="space-y-6"><Button variant="ghost" onClick={() => actions.setTab('home')}>← {labels.back}</Button><Card className="rounded-3xl border-0 shadow-sm ring-1 ring-white/70"><CardContent className="p-6 sm:p-8"><div className="flex items-start gap-4"><InstitutionLogo item={draft} /><div><h1 className="text-3xl font-black text-slate-950">{draft.title}</h1><p className="mt-1 text-slate-600">{draft.short}</p></div></div><div className="mt-6 rounded-2xl bg-slate-50 p-4 text-sm text-slate-700"><div className="font-bold">{labels.ruleApplied}</div><div className="mt-1">{c.timing}</div></div>{draft.completedOnce ? <div className="mt-6 rounded-2xl bg-emerald-50 p-4 text-sm text-emerald-950"><div className="font-black">✅ {labels.saved}</div><div className="mt-1">{draft.lastAction ? `${labels.doneOn} ${formatDate(draft.lastAction)}` : labels.doneHelp}</div>{date && <div className="mt-2 font-semibold">{labels.nextReminder} : {formatDate(date)}</div>}</div> : <div className="mt-6 rounded-2xl bg-orange-50 p-4 text-sm text-orange-950"><div className="font-black">À enregistrer</div><div className="mt-1">Cliquez sur “Oui, enregistrer”. Le prochain rappel sera calculé automatiquement.</div>{date && <div className="mt-2 font-semibold">{labels.nextReminder} : {formatDate(date)}</div>}</div>}<div className={`mt-6 grid grid-cols-1 gap-2 ${draft.completedOnce ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>{!draft.completedOnce && <Button variant="default" className="py-6 bg-orange-600 hover:bg-orange-700" onClick={() => actions.done(draft.uid, prepared)}>✅ {labels.doneButton}</Button>}{draft.completedOnce && draft.nextDate && !missingRequiredInfo(prepared) && <Button variant="outline" className="py-6" onClick={() => actions.calendar(prepared)}>📅 {cal.shortLabel}</Button>}{draft.completedOnce && <Button variant="outline" className="py-6" onClick={() => actions.done(draft.uid, prepared)}>✅ Enregistrer à nouveau</Button>}<Button variant="outline" className="py-6" onClick={() => actions.askDelete(draft.uid)}>🗑 {labels.delete}</Button></div></CardContent></Card></div>;
 }
 
 export default function App() {
@@ -1114,10 +1153,13 @@ export default function App() {
       }
 
       const newItem = makeItem(catalogId);
+      if (catalogId === 'custom') {
+        setSelectedUid(newItem.uid);
+      }
 
       setState((s) => ({
         ...s,
-        tab: 'home',
+        tab: catalogId === 'custom' ? 'detail' : 'home',
         items: [newItem, ...s.items],
         toast: {
           title: labels.saved,
@@ -1132,8 +1174,8 @@ export default function App() {
       if (!existing && !draft) return;
 
       if (item && missingRequiredInfo(item)) {
-        setSelectedUid(uid);
-        setState((s) => ({ ...s, tab: 'detail', toast: { title: labels.dateToEnter, body: item.title } }));
+        if (item.rule === 'custom') setSelectedUid(uid);
+        setState((s) => ({ ...s, tab: item.rule === 'custom' ? 'detail' : 'home', toast: { title: labels.dateToEnter, body: item.rule === 'impots_revenus' ? 'Renseignez le département avant d’enregistrer.' : item.title } }));
         return;
       }
 
@@ -1158,8 +1200,14 @@ export default function App() {
         setTimeout(() => setCalendarItem(agendaItem), 80);
       }
     },
+    update: (draft) => {
+      setState((s) => ({
+        ...s,
+        items: s.items.map((i) => i.uid === draft.uid ? normalizeItem(draft) : i),
+      }));
+    },
     edit: (item) => {
-      if (item.completedOnce) {
+      if (item.completedOnce || item.rule === 'custom') {
         setSelectedUid(item.uid);
         setState((s) => ({ ...s, tab: 'detail' }));
       } else {
