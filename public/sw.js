@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mes-rappels-droits-v26';
+const CACHE_NAME = 'mes-rappels-droits-v27';
 const APP_SHELL = ['/', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png'];
 
 self.addEventListener('install', (event) => {
